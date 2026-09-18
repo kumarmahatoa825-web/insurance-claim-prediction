@@ -42,9 +42,9 @@ Fold-Safe Preprocessing     5-Fold Stratified CV                │
                                   (11,719 holdout rows)
                                           │
                                           ▼
-                                   MODEL REGISTRY
-                       (models/releases/v4.1.0-20260918-6640e9b/)
-                                  Checksum Verification
+                                    MODEL REGISTRY
+                        (models/releases/v4.1.1-20260919-7771382/)
+                                   Checksum Verification
                                   Approval Required Gate
                                           │
                                           ▼
@@ -121,15 +121,16 @@ Cross-fitted sigmoid calibration fits sigmoid mapping on un-oversampled inner va
 1. **Primary Metric:** Out-of-Fold (OOF) PR-AUC (Precision-Recall Area Under Curve) $\ge 0.100$
 2. **Secondary Metric:** OOF ROC-AUC
 3. **Tertiary Metric:** OOF Brier Score
-4. **Authoritative Threshold:** F1 score optimization is used exclusively for selecting the operating decision threshold on calibrated OOF probabilities (**0.080**), governed as a single source of truth in `metadata.json`.
+4. **Authoritative Threshold:** F1 score optimization is used exclusively for selecting the operating decision threshold on calibrated OOF probabilities (**0.083**), governed as a single source of truth in `metadata.json`.
 
 ### Final Holdout Evaluation (11,719 Sealed Rows) with 95% Bootstrap CIs:
-- **ROC-AUC:** `0.6498` (95% CI: `[0.6304, 0.6694]`)
-- **PR-AUC:** `0.1038` (95% CI: `[0.0930, 0.1161]`)
-- **F1 Score:** `0.1676` (95% CI: `[0.1537, 0.1820]`)
-- **Brier Score:** `0.0589` (vs Baseline: `0.0599`, ECE: `0.0045`)
-- **Mean Probability:** `0.0638` (matches empirical prevalence `0.0640`)
-- **Top Decile Lift:** `2.41x`
+- **ROC-AUC:** `0.6510` (95% CI: `[0.6319, 0.6707]`)
+- **PR-AUC:** `0.1037` (95% CI: `[0.0928, 0.1157]`)
+- **F1 Score:** `0.1672` (95% CI: `[0.1512, 0.1831]`)
+- **Brier Score:** `0.0589` (vs Baseline: `0.0599`, ECE: `0.0052`)
+- **Mean Probability:** `0.0640` (matches empirical prevalence `0.0640`)
+- **Decile 1 Lift:** `1.97x` (Decile 1 claim rate 12.64% vs 6.40% prevalence)
+- **Top 5% Triage:** Lift `2.03x` | Top 10% Triage: Lift `1.97x` | Top 20% Triage: Lift `1.76x`
 
 ---
 
@@ -145,8 +146,8 @@ Output saved to: `data/processed/final_submission.csv` (39,063 rows, verified ag
 ## 🏛️ Model Governance & Registry Lifecycle
 
 The Model Registry enforces strictly immutable releases and pointer-atomic state transitions:
-1. **Immutable Releases:** All artifacts are stored in `models/releases/<version>/` (`model.joblib`, `metadata.json`, `calibration.json`, `global_shap_importance.json`, and SHA-256 `checksums.json`).
-2. **Mandatory Pointer:** `models/current.json` is the single source of truth for the active Champion (`v4.1.0-20260918-6640e9b`).
+1. **Immutable Releases:** All artifacts are stored in `models/releases/<version>/` (`model.joblib`, `metadata.json`, `calibration.json`, `global_shap_importance.json`, `global_mdi_importance.json`, `release_manifest.json`, and SHA-256 `checksums.json`).
+2. **Mandatory Pointer:** `models/current.json` is the single source of truth for the active Champion (`v4.1.1-20260919-7771382`).
 3. **Release Gate Verification Script:**
    ```powershell
    python scripts/release_check.py

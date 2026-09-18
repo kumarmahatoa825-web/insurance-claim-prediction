@@ -102,6 +102,8 @@ class ModelRegistry:
             "metadata.json",
             "calibration.json",
             "global_shap_importance.json",
+            "global_mdi_importance.json",
+            "release_manifest.json",
             "roc_curve.json",
             "pr_curve.json",
         ]

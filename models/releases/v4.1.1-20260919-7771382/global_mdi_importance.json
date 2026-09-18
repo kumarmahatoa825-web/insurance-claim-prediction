@@ -1,0 +1,152 @@
+[
+  {
+    "feature": "is_day_night_rear_view_mirror",
+    "importance": 0.05043654516339302,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "cylinder",
+    "importance": 0.03340870887041092,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "displacement",
+    "importance": 0.026887569576501846,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "age_of_car",
+    "importance": 0.025729672983288765,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "policy_tenure",
+    "importance": 0.024361202493309975,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "gross_weight",
+    "importance": 0.0223827101290226,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "fuel_type_Petrol",
+    "importance": 0.02153630740940571,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "height",
+    "importance": 0.0200575552880764,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "power_value",
+    "importance": 0.019957086071372032,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "gear_box",
+    "importance": 0.018773579970002174,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "area_cluster_C10",
+    "importance": 0.018767649307847023,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "length",
+    "importance": 0.01875751093029976,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "ncap_rating",
+    "importance": 0.018207864835858345,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "area_cluster_C18",
+    "importance": 0.017885295674204826,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "power_rpm",
+    "importance": 0.01728452742099762,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "age_tenure_ratio",
+    "importance": 0.016198400408029556,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "torque_rpm",
+    "importance": 0.015997543931007385,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "segment_C1",
+    "importance": 0.015988271683454514,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "segment_B2",
+    "importance": 0.015822988003492355,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "is_esc",
+    "importance": 0.01562099251896143,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "is_brake_assist",
+    "importance": 0.015450116246938705,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "area_cluster_C11",
+    "importance": 0.015311830677092075,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "engine_type_1.2 L K12N Dualjet",
+    "importance": 0.015166600234806538,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "steering_type_Power",
+    "importance": 0.014950563199818134,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "area_cluster_C3",
+    "importance": 0.01484757848083973,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "area_cluster_C19",
+    "importance": 0.014838765375316143,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "make_4",
+    "importance": 0.014672324992716312,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "transmission_type_Automatic",
+    "importance": 0.014327327720820904,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "area_cluster_C16",
+    "importance": 0.01430197712033987,
+    "type": "gini_mdi"
+  },
+  {
+    "feature": "population_density",
+    "importance": 0.014215896837413311,
+    "type": "gini_mdi"
+  }
+]

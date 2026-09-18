@@ -579,8 +579,7 @@ async def get_analytics(request: Request):
         try:
             sample_df = df.sample(n=min(1000, len(df)), random_state=42).reset_index(drop=True)
             feat_df = sample_df.drop(columns=[target_col, "policy_id"], errors="ignore")
-            threshold = engine.get_active_threshold()
-            preds = engine.predict_batch(feat_df, threshold=threshold)
+            preds = engine.predict_batch(feat_df)
 
             sample_probs = [p["claim_probability"] for p in preds]
             avg_predicted_prob = float(round(sum(sample_probs) / len(sample_probs), 4))

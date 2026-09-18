@@ -3,9 +3,9 @@ test_active_champion_integration.py
 ===================================
 End-to-end integration and immutability tests for the active Champion model release.
 Locks in:
-  - Active version pointer (v4.1.0-20260918-6640e9b)
+  - Active version pointer (v4.1.1-20260919-7771382)
   - Release artifact cryptographic hash integrity (checksums.json)
-  - Single source of truth decision threshold (0.080)
+  - Single source of truth decision threshold (0.083)
   - Cross-fitted calibration standards (Brier score < 0.060)
   - Final test submission volume and hash verification
 """

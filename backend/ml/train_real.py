@@ -1093,11 +1093,43 @@ def train(data_path: str = None, output_dir: str = None) -> dict:
     release_dir = os.path.join(reg.releases_dir, version)
     _safe_json(os.path.join(release_dir, "calibration.json"), test_eval["calibration_diagnostics"])
     _safe_json(os.path.join(release_dir, "global_shap_importance.json"), global_shap)
+    _safe_json(os.path.join(release_dir, "global_mdi_importance.json"), feature_importance)
     _safe_json(os.path.join(release_dir, "roc_curve.json"), test_eval["roc_curve"])
     _safe_json(os.path.join(release_dir, "pr_curve.json"), test_eval["pr_curve"])
     _safe_json(os.path.join(output_dir, "roc_curve.json"), test_eval["roc_curve"])
     _safe_json(os.path.join(output_dir, "pr_curve.json"), test_eval["pr_curve"])
-    # Re-verify/generate release checksums to include calibration.json, shap, and curve artifacts
+
+    # Build Release Manifest
+    release_manifest = {
+        "release_version": version,
+        "release_created_at": metadata["training_date"],
+        "model_type": champion_name,
+        "schema_version": "1.0.0",
+        "document_sha256": canonical_document_sha256,
+        "feature_set_sha256": canonical_feature_set_sha256,
+        "code_commit": git_commit,
+        "training_rows": len(X_train_raw),
+        "holdout_rows": len(X_test_raw),
+        "cv_folds": 5,
+        "optimal_threshold": float(optimal_threshold),
+        "cv_metrics": {
+            "roc_auc": float(champion_cv["mean"]["roc_auc"]),
+            "pr_auc": float(champion_cv["mean"]["pr_auc"]),
+            "f1": float(champion_cv["mean"]["f1"]),
+            "brier_score": float(champion_cv["mean"]["brier_score"]),
+        },
+        "holdout_metrics": {
+            "roc_auc": float(test_eval["metrics_optimal_threshold"]["roc_auc"]),
+            "pr_auc": float(test_eval["metrics_optimal_threshold"]["pr_auc"]),
+            "f1": float(test_eval["metrics_optimal_threshold"]["f1"]),
+            "brier_score": float(test_eval["metrics_optimal_threshold"]["brier_score"]),
+            "ece": float(test_eval["metrics_optimal_threshold"]["ece"]),
+        },
+        "fairness_gate_passed": fairness_audit.get("gate_passed", False),
+    }
+    _safe_json(os.path.join(release_dir, "release_manifest.json"), release_manifest)
+
+    # Re-verify/generate release checksums to include all artifacts
     reg.generate_checksums(release_dir)
 
     logger.info("[OK] Model candidate release packaged at %s", release_dir)

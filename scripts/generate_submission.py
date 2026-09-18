@@ -2,7 +2,7 @@
 InsureAI — Final Test Set Submission Generator
 ===============================================
 Executes final test set inference on data/real/test.csv (39,063 unseen policies)
-using the locked Champion model (models/champion/model.joblib).
+using the locked Champion model from the authoritative ModelRegistry (current.json).
 Outputs strictly compliant submission to data/processed/final_submission.csv.
 """
 
@@ -27,12 +27,10 @@ logger = logging.getLogger("SubmissionGenerator")
 
 def generate_submission(
     test_path: str = None,
-    champion_dir: str = None,
     output_path: str = None,
     threshold: float = None,
 ) -> pd.DataFrame:
     test_path = test_path or os.path.join(settings.BASE_DIR, "data", "real", "test.csv")
-    champion_dir = champion_dir or os.path.join(settings.BASE_DIR, "models", "champion")
     output_path = output_path or os.path.join(settings.BASE_DIR, "data", "processed", "final_submission.csv")
 
     logger.info(f"Loading test dataset from {test_path}...")

@@ -87,7 +87,7 @@ The dataset features span 4 core categories:
 ---
 
 ## 6. Train / Test Isolation & Leakage Prevention
-- **Canonical Schema Enforcement:** Validated against `schemas/vehicle_insurance_v1.json` (`sha256:b858ec67201eb6c8cc903132f518615d68947e1230dc3d1a83a93527162149a7`).
+- **Canonical Schema Enforcement:** Validated against `schemas/vehicle_insurance_v1.json` (`document_sha256: bf95ab9e3837a7cf4e7d6eb671c46e34143967bd882af2b95d2d5dd36d8a5dcd`, `feature_set_sha256: 8fce36d22ec1ed83e1bfff466ba4f6c5165da84da34f79824429c0ba8521c635`).
 - **Strict Separation:** `test.csv` (39,063 records) is held completely unlabelled and unseen during all model development, cross-validation, probability calibration, and threshold optimization.
 - **Holdout Protection:** The 20% internal holdout (`11,719` rows) is evaluated strictly once after candidate model training and threshold freezing.
 - **Identifier Hygiene:** `policy_id` is excluded from all feature matrices and encoders, eliminating arbitrary ID memorization. Duplicate `policy_id` submissions in batch inference are strictly rejected.

@@ -15,18 +15,19 @@ if %errorlevel% neq 0 (
 
 echo.
 echo [2/4] Checking model files...
-if not exist models\best_model.joblib (
-    echo      Model not found. Training on REAL dataset...
-    echo      This may take 5-15 minutes on first run.
+if not exist models\current.json (
+    echo      Active Champion model pointer not found.
+    echo      Training on REAL dataset...
+    echo      This may take 3-5 minutes on first run.
     set PYTHONIOENCODING=utf-8
     python -m backend.ml.train_real
     if %errorlevel% neq 0 (
-        echo [WARN] Real data training failed. Falling back to synthetic data...
-        python -m backend.ml.data_generator
-        python -m backend.ml.train
+        echo [ERROR] Real data training failed. Please inspect logs.
+        pause
+        exit /b 1
     )
 ) else (
-    echo      Model files found. Skipping training.
+    echo      Authoritative Champion model found in Model Registry.
     echo      To retrain on real data: python -m backend.ml.train_real
 )
 

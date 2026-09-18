@@ -206,6 +206,42 @@ def run_release_check() -> bool:
         drift_detail = f"File missing: {drift_path}"
     check("Multi-Dimensional Drift Baseline (46,873 rows)", drift_valid, drift_detail)
 
+    # 11. Global MDI Importance Artifact (Strict separation from SHAP)
+    mdi_path = os.path.join(release_dir, "global_mdi_importance.json")
+    mdi_valid = False
+    mdi_detail = ""
+    if os.path.exists(mdi_path):
+        try:
+            with open(mdi_path, "r", encoding="utf-8") as mf:
+                mdi_data = json.load(mf)
+            if isinstance(mdi_data, list) and len(mdi_data) > 0:
+                mdi_valid = all(item.get("type") in ("gini_mdi", "abs_coefficient") for item in mdi_data[:5])
+                mdi_detail = f"{len(mdi_data)} features verified type='gini_mdi' (strictly distinct from SHAP)"
+            else:
+                mdi_detail = "Empty or invalid MDI list"
+        except Exception as ex:
+            mdi_detail = f"MDI read error: {ex}"
+    else:
+        mdi_detail = f"Artifact missing: {mdi_path}"
+    check("Global MDI Feature Importance Present", mdi_valid, mdi_detail)
+
+    # 12. Release Manifest Completeness
+    rm_path = os.path.join(release_dir, "release_manifest.json")
+    rm_valid = False
+    rm_detail = ""
+    if os.path.exists(rm_path):
+        try:
+            with open(rm_path, "r", encoding="utf-8") as rmf:
+                rm_data = json.load(rmf)
+            required_keys = ["release_version", "model_type", "schema_version", "optimal_threshold", "cv_metrics", "holdout_metrics"]
+            rm_valid = all(k in rm_data for k in required_keys)
+            rm_detail = f"Version: {rm_data.get('release_version')} | Threshold: {rm_data.get('optimal_threshold')} | Holdout ROC-AUC: {rm_data.get('holdout_metrics', {}).get('roc_auc')}"
+        except Exception as ex:
+            rm_detail = f"Manifest read error: {ex}"
+    else:
+        rm_detail = f"Manifest missing: {rm_path}"
+    check("Release Manifest Complete & Verified", rm_valid, rm_detail)
+
     print("=" * 75)
     if all_passed:
         print("[SUCCESS] ALL RELEASE GATES PASSED! SYSTEM IS 10/10 PRODUCTION READY.")

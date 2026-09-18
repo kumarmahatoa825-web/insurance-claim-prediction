@@ -1,0 +1,27 @@
+{
+  "release_version": "v4.1.1-20260919-7771382",
+  "release_created_at": "2026-09-19T01:35:37.209632",
+  "model_type": "XGBoost (Scale-Pos-Weight)",
+  "schema_version": "1.0.0",
+  "document_sha256": "bf95ab9e3837a7cf4e7d6eb671c46e34143967bd882af2b95d2d5dd36d8a5dcd",
+  "feature_set_sha256": "8fce36d22ec1ed83e1bfff466ba4f6c5165da84da34f79824429c0ba8521c635",
+  "code_commit": "7771382",
+  "training_rows": 46873,
+  "holdout_rows": 11719,
+  "cv_folds": 5,
+  "optimal_threshold": 0.083,
+  "cv_metrics": {
+    "roc_auc": 0.6393354150237733,
+    "pr_auc": 0.10020587363345008,
+    "f1": 0.15936876662294958,
+    "brier_score": 0.05903804395909792
+  },
+  "holdout_metrics": {
+    "roc_auc": 0.6509838028383019,
+    "pr_auc": 0.10365689079193557,
+    "f1": 0.1672455249799626,
+    "brier_score": 0.05893222275486869,
+    "ece": 0.005200372297209446
+  },
+  "fairness_gate_passed": true
+}
