@@ -15,7 +15,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # App Information
     APP_NAME: str = "InsureAI"
-    APP_VERSION: str = "4.0.0"
+    APP_VERSION: str = "4.1.1"
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
 
@@ -28,9 +28,6 @@ class Settings(BaseSettings):
     MODELS_DIR: str = "models"
     CURRENT_POINTER_PATH: str = "models/current.json"
     REGISTRY_PATH: str = "models/registry.json"
-    CHAMPION_MODEL_PATH: str = "models/best_model.joblib"
-    CHAMPION_METADATA_PATH: str = "models/model_metadata.json"
-    LEGACY_MODEL_PATH: str = "models/best_model.joblib"
     REPORTS_DIR: str = "reports"
     DATABASE_URL: str = "sqlite+aiosqlite:///insureai.db"
 

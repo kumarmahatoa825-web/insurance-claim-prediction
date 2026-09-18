@@ -5,9 +5,11 @@
  */
 
 export const VEHICLE_SCHEMA = {
-  schemaName: "vehicle_insurance_v1",
+  schemaName: "vehicle_insurance",
   version: "1.0.0",
-  schemaHash: "76e05d11c94fb38d6732c7ef18b1ef5664d3cacc8ec9497bcbbd5fd190d3d4bb",
+  documentSha256: "bf95ab9e3837a7cf4e7d6eb671c46e34143967bd882af2b95d2d5dd36d8a5dcd",
+  featureSetSha256: "8fce36d22ec1ed83e1bfff466ba4f6c5165da84da34f79824429c0ba8521c635",
+  schemaHash: "8fce36d22ec1ed83e1bfff466ba4f6c5165da84da34f79824429c0ba8521c635",
 
   areaClusters: [
     "C1",

@@ -2,6 +2,7 @@ import os
 import io
 import csv
 import json
+from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
@@ -162,6 +163,12 @@ async def get_predictions(
                 "risk_category": p.risk_category,
                 "prediction": p.prediction,
                 "model_version": p.model_version,
+                "threshold_used": p.threshold_used,
+                "model_release_hash": p.model_release_hash,
+                "request_id": p.request_id,
+                "actual_claim": p.actual_claim,
+                "actual_outcome_recorded_at": p.actual_outcome_recorded_at.isoformat() if getattr(p, "actual_outcome_recorded_at", None) else None,
+                "outcome_source": getattr(p, "outcome_source", None),
                 "top_factors": json.loads(p.top_factors_json) if p.top_factors_json else [],
                 "input_data": json.loads(p.input_data_json) if getattr(p, "input_data_json", None) else {},
             }
@@ -182,6 +189,24 @@ async def delete_prediction(db: AsyncSession, prediction_id: int) -> bool:
     await db.delete(pred)
     await db.commit()
     return True
+
+
+async def record_prediction_outcome(
+    db: AsyncSession,
+    prediction_id: int,
+    actual_claim: int,
+    outcome_source: str = "manual_audit",
+) -> Optional[Prediction]:
+    result = await db.execute(select(Prediction).where(Prediction.id == prediction_id))
+    pred = result.scalar_one_or_none()
+    if pred is None:
+        return None
+    pred.actual_claim = int(actual_claim)
+    pred.actual_outcome_recorded_at = datetime.now(timezone.utc)
+    pred.outcome_source = str(outcome_source)
+    await db.commit()
+    await db.refresh(pred)
+    return pred
 
 
 async def export_predictions_csv(db: AsyncSession) -> str:

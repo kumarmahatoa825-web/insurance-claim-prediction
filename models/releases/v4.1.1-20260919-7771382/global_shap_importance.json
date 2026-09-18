@@ -1,0 +1,532 @@
+[
+  {
+    "feature": "policy_tenure",
+    "importance": 0.3885112404823303,
+    "type": "global_shap"
+  },
+  {
+    "feature": "age_of_car",
+    "importance": 0.19040022790431976,
+    "type": "global_shap"
+  },
+  {
+    "feature": "age_tenure_ratio",
+    "importance": 0.09237170964479446,
+    "type": "global_shap"
+  },
+  {
+    "feature": "age_of_policyholder",
+    "importance": 0.06868696957826614,
+    "type": "global_shap"
+  },
+  {
+    "feature": "population_density",
+    "importance": 0.054231639951467514,
+    "type": "global_shap"
+  },
+  {
+    "feature": "height",
+    "importance": 0.032587263733148575,
+    "type": "global_shap"
+  },
+  {
+    "feature": "displacement",
+    "importance": 0.030689142644405365,
+    "type": "global_shap"
+  },
+  {
+    "feature": "cylinder",
+    "importance": 0.02970341593027115,
+    "type": "global_shap"
+  },
+  {
+    "feature": "gross_weight",
+    "importance": 0.02850593440234661,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C3",
+    "importance": 0.01778511330485344,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C2",
+    "importance": 0.016162335872650146,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C9",
+    "importance": 0.01162482239305973,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C7",
+    "importance": 0.011141516268253326,
+    "type": "global_shap"
+  },
+  {
+    "feature": "steering_type_Power",
+    "importance": 0.010507913306355476,
+    "type": "global_shap"
+  },
+  {
+    "feature": "ncap_rating",
+    "importance": 0.010241225361824036,
+    "type": "global_shap"
+  },
+  {
+    "feature": "torque_rpm",
+    "importance": 0.00958157703280449,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C8",
+    "importance": 0.009449915960431099,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C11",
+    "importance": 0.009165510535240173,
+    "type": "global_shap"
+  },
+  {
+    "feature": "width",
+    "importance": 0.009093533270061016,
+    "type": "global_shap"
+  },
+  {
+    "feature": "length",
+    "importance": 0.008650452829897404,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C1",
+    "importance": 0.008620941080152988,
+    "type": "global_shap"
+  },
+  {
+    "feature": "turning_radius",
+    "importance": 0.008522436022758484,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C12",
+    "importance": 0.008367327973246574,
+    "type": "global_shap"
+  },
+  {
+    "feature": "segment_B2",
+    "importance": 0.008071108721196651,
+    "type": "global_shap"
+  },
+  {
+    "feature": "torque_to_weight",
+    "importance": 0.006697299890220165,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C16",
+    "importance": 0.006164617370814085,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C10",
+    "importance": 0.005813697353005409,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C14",
+    "importance": 0.005517991725355387,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_parking_sensors",
+    "importance": 0.005318209063261747,
+    "type": "global_shap"
+  },
+  {
+    "feature": "power_to_weight",
+    "importance": 0.0051274108700454235,
+    "type": "global_shap"
+  },
+  {
+    "feature": "power_rpm",
+    "importance": 0.005030510015785694,
+    "type": "global_shap"
+  },
+  {
+    "feature": "fuel_type_Petrol",
+    "importance": 0.004655118566006422,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C13",
+    "importance": 0.004629691131412983,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_1.5 Turbocharged Revotorq",
+    "importance": 0.0044980645179748535,
+    "type": "global_shap"
+  },
+  {
+    "feature": "steering_type_Electric",
+    "importance": 0.004432368092238903,
+    "type": "global_shap"
+  },
+  {
+    "feature": "segment_B1",
+    "importance": 0.004389747511595488,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C18",
+    "importance": 0.004347871523350477,
+    "type": "global_shap"
+  },
+  {
+    "feature": "car_size",
+    "importance": 0.004314501769840717,
+    "type": "global_shap"
+  },
+  {
+    "feature": "airbags",
+    "importance": 0.004087050445377827,
+    "type": "global_shap"
+  },
+  {
+    "feature": "transmission_type_Automatic",
+    "importance": 0.003923760261386633,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C5",
+    "importance": 0.0038844887167215347,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C17",
+    "importance": 0.003609288251027465,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_rear_window_wiper",
+    "importance": 0.0035610469058156013,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_day_night_rear_view_mirror",
+    "importance": 0.003470862517133355,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_K10C",
+    "importance": 0.0030551666859537363,
+    "type": "global_shap"
+  },
+  {
+    "feature": "safety_score",
+    "importance": 0.002264521550387144,
+    "type": "global_shap"
+  },
+  {
+    "feature": "power_value",
+    "importance": 0.0021657662000507116,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_parking_camera",
+    "importance": 0.0021426649764180183,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C22",
+    "importance": 0.002094576833769679,
+    "type": "global_shap"
+  },
+  {
+    "feature": "gear_box",
+    "importance": 0.0018188696121796966,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_esc",
+    "importance": 0.0017646810738369823,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C19",
+    "importance": 0.0017463642871007323,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C21",
+    "importance": 0.0017356767784804106,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C4",
+    "importance": 0.0016288984334096313,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_1.2 L K12N Dualjet",
+    "importance": 0.001599045004695654,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_1.2 L K Series Engine",
+    "importance": 0.001445065368898213,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_brake_assist",
+    "importance": 0.0012460537254810333,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M6",
+    "importance": 0.0011669297236949205,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M2",
+    "importance": 0.0011171082733199,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M5",
+    "importance": 0.0010224540019407868,
+    "type": "global_shap"
+  },
+  {
+    "feature": "segment_C1",
+    "importance": 0.0009155253646895289,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C6",
+    "importance": 0.0006338482489809394,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C20",
+    "importance": 0.0005390772130340338,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M7",
+    "importance": 0.0004737596900667995,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_K Series Dual jet",
+    "importance": 0.00023473225883208215,
+    "type": "global_shap"
+  },
+  {
+    "feature": "make_4",
+    "importance": 0.00016182057152036577,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_front_fog_lights",
+    "importance": 7.61827323003672e-05,
+    "type": "global_shap"
+  },
+  {
+    "feature": "torque_value",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "safety_missing_count",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_adjustable_steering",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_tpms",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_rear_window_washer",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_rear_window_defogger",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_power_door_locks",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_central_locking",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_power_steering",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_driver_seat_height_adjustable",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_ecw",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "is_speed_alert",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "area_cluster_C15",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "segment_A",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "segment_C2",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "segment_Utility",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "fuel_type_CNG",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "fuel_type_Diesel",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "rear_brakes_type_Disc",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "rear_brakes_type_Drum",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "transmission_type_Manual",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "steering_type_Manual",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_1.0 SCe",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_1.5 L U2 CRDi",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_1.5 Turbocharged Revotron",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_F8D Petrol Engine",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_G12B",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "engine_type_i-DTEC",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "make_1",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "make_2",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "make_3",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "make_5",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M1",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M10",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M11",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M3",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M4",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M8",
+    "importance": 0.0,
+    "type": "global_shap"
+  },
+  {
+    "feature": "model_M9",
+    "importance": 0.0,
+    "type": "global_shap"
+  }
+]

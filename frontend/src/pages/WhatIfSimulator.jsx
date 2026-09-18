@@ -220,9 +220,9 @@ export default function WhatIfSimulator() {
             </label>
             <input
               type="range"
-              min="0.01"
-              max="1.5"
-              step="0.01"
+              min={VEHICLE_SCHEMA.numericBounds.policy_tenure.min}
+              max={VEHICLE_SCHEMA.numericBounds.policy_tenure.max}
+              step={VEHICLE_SCHEMA.numericBounds.policy_tenure.step}
               value={modified.policy_tenure}
               onChange={e => handleModifiedChange('policy_tenure', parseFloat(e.target.value))}
               className="w-full accent-indigo-600 cursor-pointer"
@@ -237,9 +237,9 @@ export default function WhatIfSimulator() {
             </label>
             <input
               type="range"
-              min="0.2"
-              max="0.9"
-              step="0.01"
+              min={VEHICLE_SCHEMA.numericBounds.age_of_policyholder.min}
+              max={VEHICLE_SCHEMA.numericBounds.age_of_policyholder.max}
+              step={VEHICLE_SCHEMA.numericBounds.age_of_policyholder.step}
               value={modified.age_of_policyholder}
               onChange={e => handleModifiedChange('age_of_policyholder', parseFloat(e.target.value))}
               className="w-full accent-indigo-600 cursor-pointer"
@@ -254,9 +254,9 @@ export default function WhatIfSimulator() {
             </label>
             <input
               type="range"
-              min="0.0"
-              max="0.5"
-              step="0.01"
+              min={VEHICLE_SCHEMA.numericBounds.age_of_car.min}
+              max={VEHICLE_SCHEMA.numericBounds.age_of_car.max}
+              step={VEHICLE_SCHEMA.numericBounds.age_of_car.step}
               value={modified.age_of_car}
               onChange={e => handleModifiedChange('age_of_car', parseFloat(e.target.value))}
               className="w-full accent-indigo-600 cursor-pointer"
@@ -271,9 +271,9 @@ export default function WhatIfSimulator() {
             </label>
             <input
               type="range"
-              min="1"
-              max="6"
-              step="1"
+              min={VEHICLE_SCHEMA.numericBounds.airbags.min}
+              max={VEHICLE_SCHEMA.numericBounds.airbags.max}
+              step={VEHICLE_SCHEMA.numericBounds.airbags.step}
               value={modified.airbags}
               onChange={e => handleModifiedChange('airbags', parseInt(e.target.value))}
               className="w-full accent-indigo-600 cursor-pointer"
@@ -305,7 +305,7 @@ export default function WhatIfSimulator() {
               onChange={e => handleModifiedChange('fuel_type', e.target.value)}
               className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2"
             >
-              {['Petrol', 'Diesel', 'CNG'].map(f => (
+              {VEHICLE_SCHEMA.fuelTypes.map(f => (
                 <option key={f} value={f}>{f}</option>
               ))}
             </select>
@@ -319,7 +319,7 @@ export default function WhatIfSimulator() {
               onChange={e => handleModifiedChange('segment', e.target.value)}
               className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2"
             >
-              {['A', 'B1', 'B2', 'C1', 'C2', 'Utility'].map(s => (
+              {VEHICLE_SCHEMA.segments.map(s => (
                 <option key={s} value={s}>Segment {s}</option>
               ))}
             </select>
@@ -333,7 +333,7 @@ export default function WhatIfSimulator() {
               onChange={e => handleModifiedChange('transmission_type', e.target.value)}
               className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2"
             >
-              {['Manual', 'Automatic'].map(t => (
+              {VEHICLE_SCHEMA.transmissionTypes.map(t => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>

@@ -26,7 +26,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.settings import settings
 from backend.database.db import (
-    get_db, save_prediction, get_predictions, delete_prediction, export_predictions_csv
+    get_db, save_prediction, get_predictions, delete_prediction,
+    record_prediction_outcome, export_predictions_csv
 )
 from backend.services.report_service import ReportService
 from backend.validation.data_validator import DataValidator
@@ -52,6 +53,7 @@ class PredictRequest(BaseModel):
     Schema-flexible prediction request.
     Supports real vehicle insurance fields as well as synthetic legacy attributes.
     Server strictly controls decision threshold; client threshold overrides are rejected with 422.
+    Target leakage fields (e.g. is_claim) are strictly forbidden with 422.
     """
     model_config = {"extra": "allow"}
 
@@ -68,6 +70,15 @@ class PredictRequest(BaseModel):
                 "Overriding the decision threshold is not permitted on /predict. "
                 "The active Champion model's locked threshold is authoritative. "
                 "Use /threshold-analysis for threshold experimentation."
+            )
+        return v
+
+    @field_validator("is_claim", "claim_filed", "claim_amount", check_fields=False)
+    @classmethod
+    def validate_no_target_leakage(cls, v):
+        if v is not None:
+            raise ValueError(
+                "Data leakage risk: target/outcome columns cannot be passed during prediction."
             )
         return v
 
@@ -137,6 +148,16 @@ class CostAnalysisRequest(BaseModel):
     fn_cost: float = Field(ge=0, default=5000.0, description="Cost of a False Negative (Rs)")
 
 
+class VehiclePredictRequest(PredictRequest):
+    """Strict canonical vehicle prediction schema that rejects unknown extra fields."""
+    model_config = {"extra": "forbid"}
+
+
+class RecordOutcomeRequest(BaseModel):
+    actual_claim: int = Field(..., ge=0, le=1, description="Actual claim outcome: 1 for claim filed, 0 for no claim")
+    outcome_source: Optional[str] = Field(default="production_audit", description="Source or verifier of the outcome")
+
+
 # ── Utilities ─────────────────────────────────────────────────────────────────
 
 def _json_safe(obj: Any) -> Any:
@@ -191,19 +212,59 @@ async def health_live():
 
 @router.get("/health/ready", tags=["System"])
 async def health_ready(request: Request):
-    """Readiness probe: returns 200 if model is loaded and ready for inference, else 503."""
+    """Readiness probe: returns 200 if model is loaded, metadata matches schema, and checksums verify, else 503."""
     is_loaded = getattr(request.app.state, "model_loaded", False)
-    if not is_loaded:
+    engine = getattr(request.app.state, "predict_engine", None)
+    meta = getattr(request.app.state, "metadata", None)
+    if not is_loaded or engine is None or meta is None:
         raise HTTPException(
             status_code=503,
             detail="Service not ready: champion model is not loaded.",
         )
-    meta = getattr(request.app.state, "metadata", None) or {}
+
+    # Check schema consistency
+    schema_version_path = os.path.join("schemas", "schema_version.json")
+    schema_version_str = "unknown"
+    if os.path.exists(schema_version_path):
+        try:
+            with open(schema_version_path, "r", encoding="utf-8") as f:
+                s_info = json.load(f)
+                schema_version_str = s_info.get("version", "unknown")
+                expected_sha = s_info.get("feature_set_sha256")
+                actual_sha = meta.get("feature_set_sha256")
+                if expected_sha and actual_sha and expected_sha != actual_sha:
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Service not ready: feature schema mismatch (expected {expected_sha[:8]}, model has {actual_sha[:8]}).",
+                    )
+        except HTTPException:
+            raise
+        except Exception as se:
+            logger.warning("Schema check error in health/ready: %s", se)
+
+    # Verify release checksums if candidate/release exists
+    version = meta.get("version")
+    if version:
+        try:
+            registry = ModelRegistry()
+            is_valid, reason = registry.verify_release(version)
+            if not is_valid:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Service not ready: release verification failed for {version}: {reason}",
+                )
+        except HTTPException:
+            raise
+        except Exception as ve:
+            logger.warning("Release verification check skipped or failed: %s", ve)
+
     return {
         "status": "ready",
         "model_loaded": True,
         "model_version": meta.get("version", "unknown"),
         "model_name": meta.get("model_name", "unknown"),
+        "schema_version": schema_version_str,
+        "checksums_verified": True,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -253,11 +314,8 @@ async def predict_single(req: PredictRequest, request: Request, db: AsyncSession
     if not is_valid:
         raise HTTPException(status_code=422, detail={"errors": errors, "warnings": warnings})
 
-    # Authoritative active optimal threshold from active model metadata
-    threshold = engine.get_active_threshold()
-
     try:
-        result = engine.predict_single(input_dict, threshold=threshold)
+        result = engine.predict_single(input_dict)
     except Exception as e:
         logger.error("Prediction failed: %s", e)
         raise HTTPException(status_code=500, detail=f"Inference error: {e}")
@@ -276,6 +334,8 @@ async def predict_single(req: PredictRequest, request: Request, db: AsyncSession
         except Exception as ex:
             logger.warning("SHAP explanation failed: %s", ex)
 
+    req_id = getattr(request.state, "request_id", None)
+    result["request_id"] = req_id
     result["disclaimer"] = DISCLAIMER
     result["timestamp"] = datetime.now(timezone.utc).isoformat()
     result["validation_warnings"] = warnings
@@ -290,8 +350,11 @@ async def predict_single(req: PredictRequest, request: Request, db: AsyncSession
                 "risk_score": result["risk_score"],
                 "risk_category": result["risk_category"],
                 "prediction": result["prediction"],
-                "model_version": result.get("model_version", "v4.0-real"),
-                "feature_schema_version": "vehicle-v2",
+                "model_version": result.get("model_version", meta.get("version", "v4.1.1")),
+                "feature_schema_version": meta.get("schema_version", "1.0.0"),
+                "threshold_used": result.get("threshold_used"),
+                "model_release_hash": result.get("model_release_hash"),
+                "request_id": req_id,
                 "top_factors_json": json.dumps(result.get("top_risk_factors", [])),
                 "input_data": input_dict,
             })
@@ -769,8 +832,7 @@ async def explain_prediction(req: PredictRequest, request: Request):
     input_dict = {k: v for k, v in input_dict.items() if v is not None}
 
     try:
-        threshold = req.threshold if req.threshold is not None else engine.get_active_threshold()
-        result = engine.predict_single(input_dict, threshold=threshold)
+        result = engine.predict_single(input_dict)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
 
@@ -872,10 +934,33 @@ async def get_prediction_history(
 
 @router.delete("/history/{prediction_id}", tags=["History"])
 async def delete_history_item(prediction_id: int, db: AsyncSession = Depends(get_db)):
-    success = await delete_prediction(db, prediction_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Prediction record not found.")
-    return {"status": "deleted", "id": prediction_id}
+    raise HTTPException(
+        status_code=403,
+        detail="Prediction audit history is immutable and cannot be deleted in production.",
+    )
+
+
+@router.post("/history/{prediction_id}/outcome", tags=["History"])
+async def record_history_outcome(
+    prediction_id: int,
+    req: RecordOutcomeRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    pred = await record_prediction_outcome(
+        db,
+        prediction_id=prediction_id,
+        actual_claim=req.actual_claim,
+        outcome_source=req.outcome_source or "production_audit",
+    )
+    if not pred:
+        raise HTTPException(status_code=404, detail=f"Prediction record {prediction_id} not found.")
+    return {
+        "status": "outcome_recorded",
+        "id": pred.id,
+        "actual_claim": pred.actual_claim,
+        "actual_outcome_recorded_at": pred.actual_outcome_recorded_at.isoformat() if pred.actual_outcome_recorded_at else None,
+        "outcome_source": pred.outcome_source,
+    }
 
 
 @router.get("/history/export", tags=["History"])

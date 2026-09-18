@@ -149,10 +149,9 @@ class PredictionEngine:
 
     # ── Prediction ────────────────────────────────────────────────────────────
 
-    def predict_single(self, input_dict: dict, threshold: Optional[float] = None) -> dict:
-        """Predict a single record given as a dict of feature values using the authoritative active threshold."""
-        if threshold is None:
-            threshold = self.get_active_threshold()
+    def predict_single(self, input_dict: dict) -> dict:
+        """Predict a single record given as a dict of feature values using strictly the authoritative active threshold."""
+        threshold = self.get_active_threshold()
 
         df = pd.DataFrame([input_dict])
         try:
@@ -187,12 +186,11 @@ class PredictionEngine:
             "recommendations": self.get_recommendations(risk_category, []),
         }
 
-    def predict_batch(self, df: pd.DataFrame, threshold: Optional[float] = None) -> list:
-        """Predict all rows of a DataFrame using the authoritative active threshold."""
+    def predict_batch(self, df: pd.DataFrame) -> list:
+        """Predict all rows of a DataFrame using strictly the authoritative active threshold."""
         if self.pipeline is None:
             raise RuntimeError("Model not loaded.")
-        if threshold is None:
-            threshold = self.get_active_threshold()
+        threshold = self.get_active_threshold()
 
         try:
             probs = self._predict_prob_array(df)

@@ -19,6 +19,24 @@ logger = logging.getLogger(__name__)
 try:
     import shap
     HAS_SHAP = True
+    # Safe compatibility patch for SHAP TreeExplainer with modern XGBoost versions
+    try:
+        import shap.explainers._tree as _shap_tree
+        _orig_decode_ubjson = _shap_tree.decode_ubjson_buffer
+
+        def _safe_decode_ubjson(fd):
+            res = _orig_decode_ubjson(fd)
+            try:
+                param = res.get("learner", {}).get("learner_model_param", {})
+                if "base_score" in param and isinstance(param["base_score"], str):
+                    param["base_score"] = param["base_score"].strip("[]")
+            except Exception:
+                pass
+            return res
+
+        _shap_tree.decode_ubjson_buffer = _safe_decode_ubjson
+    except Exception:
+        pass
 except ImportError:
     HAS_SHAP = False
 
@@ -184,8 +202,8 @@ class ExplainabilityEngine:
     def get_global_shap_importance(self, n_features: int = 15) -> List[Dict[str, Any]]:
         """
         Return global mean absolute SHAP values across representative samples.
-        Checks active champion release directory first, then in-memory cache,
-        with fallback to model weights.
+        Checks active champion release directory first, then in-memory cache.
+        Strictly returns items with type 'global_shap'. Never falls back to MDI.
         """
         try:
             import os
@@ -198,21 +216,28 @@ class ExplainabilityEngine:
                 if os.path.exists(shap_path):
                     with open(shap_path, "r", encoding="utf-8") as f:
                         items = json.load(f)
-                        if items:
-                            return items[:n_features]
+                        if items and isinstance(items, list):
+                            shap_only = [x for x in items if x.get("type") == "global_shap"]
+                            if shap_only:
+                                return shap_only[:n_features]
         except Exception as e:
             logger.debug("Could not read release global_shap_importance.json: %s", e)
 
         if self._global_importance_cache:
-            return self._global_importance_cache[:n_features]
-        return self.get_global_model_importance(n_features=n_features)
+            shap_cached = [x for x in self._global_importance_cache if x.get("type") == "global_shap"]
+            if shap_cached:
+                return shap_cached[:n_features]
+        return []
 
     def get_global_importance(self, n_features: int = 15) -> List[Dict[str, Any]]:
         """
         Global importance method. Returns SHAP importance if available,
-        otherwise falls back to model Gini/MDI weights.
+        otherwise returns MDI importance.
         """
-        return self.get_global_shap_importance(n_features=n_features)
+        shap_vals = self.get_global_shap_importance(n_features=n_features)
+        if shap_vals:
+            return shap_vals
+        return self.get_global_mdi(n_features=n_features)
 
     def explain_local_shap(self, input_dict: dict, preprocessor: Any = None) -> dict:
         """Decoupled local waterfall SHAP explanation for a single policyholder."""

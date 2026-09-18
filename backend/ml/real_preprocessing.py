@@ -61,20 +61,33 @@ BASE_NUMERIC_COLS = [
 # Engineered feature names (added by VehicleFeatureEngineer)
 ENGINEERED_NUMERIC_COLS = [
     "torque_value", "power_value", "torque_rpm", "power_rpm",
-    "safety_score", "age_tenure_ratio", "car_size",
+    "safety_score", "safety_missing_count", "age_tenure_ratio", "car_size",
     "power_to_weight", "torque_to_weight",
 ]
 
 TARGET_COL = "is_claim"
 
 
-# ── String parser ─────────────────────────────────────────────────────────────
+# ── String parser & safe math helpers ─────────────────────────────────────────
 
 def _parse_value_at_rpm(series: pd.Series):
     """Extract numeric value and RPM from strings like '60Nm@3500rpm' or '80bhp@5500rpm'."""
     value = series.str.extract(r"([0-9]+(?:\.[0-9]+)?)(?:Nm|bhp)", expand=False).astype(float)
     rpm = series.str.extract(r"@([0-9]+(?:\.[0-9]+)?)rpm", expand=False).astype(float)
     return value, rpm
+
+
+def safe_div(num: pd.Series, den: pd.Series) -> pd.Series:
+    """
+    Mathematically safe division returning NaN when denominator <= 0 or missing.
+    Prevents ratio explosion when denominator approaches zero.
+    """
+    num_vals = num.astype(float).values
+    den_vals = den.astype(float).values
+    out = np.full_like(num_vals, np.nan, dtype=float)
+    valid_mask = (~np.isnan(num_vals)) & (~np.isnan(den_vals)) & (den_vals > 0)
+    np.divide(num_vals, den_vals, out=out, where=valid_mask)
+    return pd.Series(out, index=num.index)
 
 
 # ── Feature Engineering Transformer ──────────────────────────────────────────
@@ -130,19 +143,21 @@ class VehicleFeatureEngineer(BaseEstimator, TransformerMixin):
         ]
         present_safety = [c for c in safety_cols if c in X.columns]
         if present_safety:
-            X["safety_score"] = X[present_safety].fillna(0).sum(axis=1)
+            # Semantic fix: preserve NaNs, sum with min_count=1, and track missing count explicitly
+            X["safety_score"] = X[present_safety].sum(axis=1, min_count=1)
+            X["safety_missing_count"] = X[present_safety].isna().sum(axis=1).astype(float)
 
         if "age_of_policyholder" in X.columns and "policy_tenure" in X.columns:
-            X["age_tenure_ratio"] = X["age_of_policyholder"] / (X["policy_tenure"] + 0.01)
+            X["age_tenure_ratio"] = safe_div(X["age_of_policyholder"], X["policy_tenure"])
 
         if all(c in X.columns for c in ["length", "width", "height"]):
-            X["car_size"] = X["length"] * X["width"] * X["height"] / 1e8
+            X["car_size"] = (X["length"].astype(float) * X["width"].astype(float) * X["height"].astype(float)) / 1e8
 
         if "power_value" in X.columns and "gross_weight" in X.columns:
-            X["power_to_weight"] = X["power_value"] / (X["gross_weight"] + 1)
+            X["power_to_weight"] = safe_div(X["power_value"], X["gross_weight"])
 
         if "torque_value" in X.columns and "gross_weight" in X.columns:
-            X["torque_to_weight"] = X["torque_value"] / (X["gross_weight"] + 1)
+            X["torque_to_weight"] = safe_div(X["torque_value"], X["gross_weight"])
 
         return X
 

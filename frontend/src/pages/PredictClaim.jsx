@@ -23,44 +23,46 @@ const SYNTHETIC_DEFAULTS = {
   store_prediction: true,
 };
 
-// ── Canonical vehicle form sections ──────────────────────────────────────────
+// ── Canonical vehicle form sections (Dynamically bound to VEHICLE_SCHEMA) ──
+const b = VEHICLE_SCHEMA.numericBounds;
+
 const REAL_FORM_SECTIONS = [
   {
     title: 'Policy Info',
     icon: Shield,
     fields: [
-      { key: 'policy_tenure', label: 'Policy Tenure (0–1, normalized)', type: 'range', min: 0, max: 1, step: 0.01 },
+      { key: 'policy_tenure', label: b.policy_tenure.label, type: 'range', min: b.policy_tenure.min, max: b.policy_tenure.max, step: b.policy_tenure.step },
       { key: 'area_cluster', label: 'Area Cluster', type: 'select', opts: VEHICLE_SCHEMA.areaClusters },
-      { key: 'population_density', label: 'Population Density', type: 'number', min: 100, max: 100000 },
+      { key: 'population_density', label: b.population_density.label, type: 'number', min: b.population_density.min, max: b.population_density.max, step: b.population_density.step },
     ],
   },
   {
     title: 'Policyholder Info',
     icon: Shield,
     fields: [
-      { key: 'age_of_policyholder', label: 'Age of Policyholder (0–1, normalized)', type: 'range', min: 0, max: 1, step: 0.01 },
-      { key: 'ncap_rating', label: 'NCAP Safety Rating (0–5)', type: 'select', opts: [0, 1, 2, 3, 4, 5] },
+      { key: 'age_of_policyholder', label: b.age_of_policyholder.label, type: 'range', min: b.age_of_policyholder.min, max: b.age_of_policyholder.max, step: b.age_of_policyholder.step },
+      { key: 'ncap_rating', label: b.ncap_rating.label, type: 'select', opts: [0, 1, 2, 3, 4, 5] },
     ],
   },
   {
     title: 'Vehicle Info',
     icon: Car,
     fields: [
-      { key: 'age_of_car', label: 'Age of Car (0–1, normalized)', type: 'range', min: 0, max: 1, step: 0.01 },
+      { key: 'age_of_car', label: b.age_of_car.label, type: 'range', min: b.age_of_car.min, max: b.age_of_car.max, step: b.age_of_car.step },
       { key: 'make', label: 'Manufacturer Code (Make 1-5)', type: 'select', opts: VEHICLE_SCHEMA.makes },
       { key: 'segment', label: 'Vehicle Segment', type: 'select', opts: VEHICLE_SCHEMA.segments },
       { key: 'model', label: 'Vehicle Model', type: 'select', opts: VEHICLE_SCHEMA.models },
       { key: 'fuel_type', label: 'Fuel Type', type: 'select', opts: VEHICLE_SCHEMA.fuelTypes },
       { key: 'transmission_type', label: 'Transmission', type: 'select', opts: VEHICLE_SCHEMA.transmissionTypes },
-      { key: 'gear_box', label: 'Gear Box Speeds', type: 'number', min: 4, max: 8 },
-      { key: 'cylinder', label: 'Cylinders', type: 'number', min: 2, max: 8 },
-      { key: 'displacement', label: 'Engine Displacement (cc)', type: 'number', min: 500, max: 3000 },
-      { key: 'airbags', label: 'Number of Airbags', type: 'number', min: 1, max: 10 },
-      { key: 'turning_radius', label: 'Turning Radius (m)', type: 'number', min: 3, max: 10, step: 0.1 },
-      { key: 'gross_weight', label: 'Gross Vehicle Weight (kg)', type: 'number', min: 500, max: 5000 },
-      { key: 'length', label: 'Length (mm)', type: 'number', min: 2000, max: 6000 },
-      { key: 'width', label: 'Width (mm)', type: 'number', min: 1000, max: 3000 },
-      { key: 'height', label: 'Height (mm)', type: 'number', min: 1000, max: 3000 },
+      { key: 'gear_box', label: b.gear_box.label, type: 'number', min: b.gear_box.min, max: b.gear_box.max, step: b.gear_box.step },
+      { key: 'cylinder', label: b.cylinder.label, type: 'number', min: b.cylinder.min, max: b.cylinder.max, step: b.cylinder.step },
+      { key: 'displacement', label: b.displacement.label, type: 'number', min: b.displacement.min, max: b.displacement.max, step: b.displacement.step },
+      { key: 'airbags', label: b.airbags.label, type: 'number', min: b.airbags.min, max: b.airbags.max, step: b.airbags.step },
+      { key: 'turning_radius', label: b.turning_radius.label, type: 'number', min: b.turning_radius.min, max: b.turning_radius.max, step: b.turning_radius.step },
+      { key: 'gross_weight', label: b.gross_weight.label, type: 'number', min: b.gross_weight.min, max: b.gross_weight.max, step: b.gross_weight.step },
+      { key: 'length', label: b.length.label, type: 'number', min: b.length.min, max: b.length.max, step: b.length.step },
+      { key: 'width', label: b.width.label, type: 'number', min: b.width.min, max: b.width.max, step: b.width.step },
+      { key: 'height', label: b.height.label, type: 'number', min: b.height.min, max: b.height.max, step: b.height.step },
       { key: 'rear_brakes_type', label: 'Rear Brakes', type: 'select', opts: VEHICLE_SCHEMA.rearBrakesTypes },
       { key: 'steering_type', label: 'Steering Type', type: 'select', opts: VEHICLE_SCHEMA.steeringTypes },
     ],
@@ -271,7 +273,6 @@ const PredictClaim = () => {
       setActiveThreshold(thresh);
       setValues({
         ...(mode === 'real' ? REAL_DEFAULTS : SYNTHETIC_DEFAULTS),
-        threshold: thresh,
       });
     }).finally(() => setModeLoading(false));
   }, []);
@@ -287,7 +288,6 @@ const PredictClaim = () => {
         ...values,
         store_prediction: true,
       };
-      delete payload.threshold;
       const res = await predict(payload);
       setResult(res.data);
       toast.success('Prediction complete!');

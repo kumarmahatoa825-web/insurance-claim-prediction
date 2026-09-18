@@ -5,12 +5,14 @@ from backend.core.settings import settings
 
 @pytest.fixture(scope="module")
 def loaded_engine():
+    from backend.ml.registry import ModelRegistry
+    reg = ModelRegistry(settings.MODELS_DIR)
+    try:
+        model_path, meta_path = reg.get_active_champion_paths()
+    except Exception as e:
+        pytest.skip(f"No active champion found in registry: {e}")
     engine = PredictionEngine()
-    model_path = settings.CHAMPION_MODEL_PATH if os.path.exists(settings.CHAMPION_MODEL_PATH) else settings.LEGACY_MODEL_PATH
-    if not os.path.exists(model_path):
-        pytest.skip("No trained model found. Run training first.")
     engine.load_model(model_path)
-    meta_path = settings.CHAMPION_METADATA_PATH if os.path.exists(settings.CHAMPION_METADATA_PATH) else os.path.join(settings.MODELS_DIR, "model_metadata.json")
     engine.load_metadata(meta_path)
     return engine
 

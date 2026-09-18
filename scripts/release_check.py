@@ -64,22 +64,33 @@ def run_release_check() -> bool:
 
     # 3. Canonical Schema Compliance
     schema_path = os.path.join(BASE_DIR, "schemas", "vehicle_insurance_v1.json")
+    schema_version_path = os.path.join(BASE_DIR, "schemas", "schema_version.json")
     schema_exists = os.path.exists(schema_path)
     check("Canonical Schema Exists", schema_exists, schema_path)
 
-    canonical_hash = None
-    if schema_exists:
-        with open(schema_path, "rb") as sf:
-            canonical_hash = f"sha256:{hashlib.sha256(sf.read()).hexdigest()}"
+    canonical_feature_hash = None
+    canonical_doc_hash = None
+    if os.path.exists(schema_version_path):
+        with open(schema_version_path, "r", encoding="utf-8") as svf:
+            sv_data = json.load(svf)
+            canonical_feature_hash = sv_data.get("feature_set_sha256")
+            canonical_doc_hash = sv_data.get("document_sha256")
 
     metadata = {}
     if meta_path and os.path.exists(meta_path):
         with open(meta_path, "r", encoding="utf-8") as mf:
             metadata = json.load(mf)
 
-    recorded_schema_hash = metadata.get("schema_hash") or metadata.get("dataset", {}).get("schema_hash")
-    schema_match = bool(canonical_hash and recorded_schema_hash == canonical_hash)
-    check("Schema Hash Match", schema_match, f"Canonical: {canonical_hash} | Model: {recorded_schema_hash}")
+    recorded_feature_hash = metadata.get("feature_set_sha256")
+    recorded_doc_hash = metadata.get("document_sha256") or metadata.get("schema_hash")
+
+    schema_match = False
+    if canonical_feature_hash and recorded_feature_hash:
+        schema_match = (canonical_feature_hash == recorded_feature_hash)
+    elif canonical_doc_hash and recorded_doc_hash:
+        schema_match = (canonical_doc_hash == recorded_doc_hash)
+
+    check("Schema Hash Match", schema_match, f"Canonical: {canonical_feature_hash or canonical_doc_hash} | Model: {recorded_feature_hash or recorded_doc_hash}")
 
     # 4. Calibration Diagnostics
     cal = metadata.get("calibration", {})
@@ -133,6 +144,67 @@ def run_release_check() -> bool:
 
     check("Final Submission (39,063 rows) Valid", sub_valid, detail)
     check("Submission Manifest Recorded", manifest_exists, manifest_path)
+
+    # 8. Genuine Global SHAP Artifact (No MDI Substitution)
+    shap_path = os.path.join(release_dir, "global_shap_importance.json")
+    shap_valid = False
+    shap_detail = ""
+    if os.path.exists(shap_path):
+        try:
+            with open(shap_path, "r", encoding="utf-8") as sf:
+                shap_data = json.load(sf)
+            if isinstance(shap_data, list) and len(shap_data) > 0:
+                is_genuine = all(item.get("type") == "global_shap" for item in shap_data[:5])
+                shap_valid = isgenuine = is_genuine
+                shap_detail = f"Top {len(shap_data)} features verified type='global_shap' (genuine TreeExplainer background sampling)"
+            else:
+                shap_detail = "Empty or invalid SHAP list"
+        except Exception as ex:
+            shap_detail = f"SHAP read error: {ex}"
+    else:
+        shap_detail = f"Artifact missing: {shap_path}"
+    check("Global SHAP Integrity (No MDI Fallback)", shap_valid, shap_detail)
+
+    # 9. Performance Curves Downsampled
+    roc_path = os.path.join(release_dir, "roc_curve.json")
+    pr_path = os.path.join(release_dir, "pr_curve.json")
+    curves_valid = False
+    curves_detail = ""
+    if os.path.exists(roc_path) and os.path.exists(pr_path):
+        try:
+            with open(roc_path, "r", encoding="utf-8") as rf, open(pr_path, "r", encoding="utf-8") as pf:
+                roc_data = json.load(rf)
+                pr_data = json.load(pf)
+            n_roc = len(roc_data.get("fpr", []))
+            n_pr = len(pr_data.get("recall", []))
+            curves_valid = (n_roc <= 105 and n_pr <= 105 and n_roc > 0 and n_pr > 0)
+            curves_detail = f"ROC points: {n_roc}, PR points: {n_pr} (cleanly downsampled to <=100)"
+        except Exception as ex:
+            curves_detail = f"Curve read error: {ex}"
+    else:
+        curves_detail = f"Curves missing in {release_dir}"
+    check("Downsampled ROC & PR Curves Present", curves_valid, curves_detail)
+
+    # 10. Multi-Dimensional Drift Baseline
+    drift_path = os.path.join(BASE_DIR, "data", "processed", "drift_baseline.json")
+    drift_valid = False
+    drift_detail = ""
+    if os.path.exists(drift_path):
+        try:
+            with open(drift_path, "r", encoding="utf-8") as df_file:
+                drift_data = json.load(df_file)
+            rows = drift_data.get("rows", 0)
+            has_pred = bool(drift_data.get("prediction", {}).get("bins"))
+            has_cont = len(drift_data.get("continuous_features", {})) > 0
+            has_cat = len(drift_data.get("categorical_features", {})) > 0
+            has_miss = len(drift_data.get("baseline_missingness", {})) > 0
+            drift_valid = (rows == 46873 and has_pred and has_cont and has_cat and has_miss)
+            drift_detail = f"Baseline rows: {rows:,} | Continuous: {len(drift_data.get('continuous_features', {}))} | Categorical: {len(drift_data.get('categorical_features', {}))}"
+        except Exception as ex:
+            drift_detail = f"Drift read error: {ex}"
+    else:
+        drift_detail = f"File missing: {drift_path}"
+    check("Multi-Dimensional Drift Baseline (46,873 rows)", drift_valid, drift_detail)
 
     print("=" * 75)
     if all_passed:

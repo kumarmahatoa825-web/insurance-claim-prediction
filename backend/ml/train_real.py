@@ -22,6 +22,7 @@ Implements rigorous scientific training, governance, and audit standards:
 """
 
 import os
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", "12")
 import sys
 import json
 import time
@@ -33,6 +34,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import warnings
+from typing import Optional, Dict, List, Any, Tuple
 
 from sklearn.base import clone
 from sklearn.linear_model import LogisticRegression
@@ -67,6 +69,24 @@ except ImportError:
 try:
     import shap
     HAS_SHAP = True
+    # Safe compatibility patch for SHAP TreeExplainer with modern XGBoost versions
+    try:
+        import shap.explainers._tree as _shap_tree
+        _orig_decode_ubjson = _shap_tree.decode_ubjson_buffer
+
+        def _safe_decode_ubjson(fd):
+            res = _orig_decode_ubjson(fd)
+            try:
+                param = res.get("learner", {}).get("learner_model_param", {})
+                if "base_score" in param and isinstance(param["base_score"], str):
+                    param["base_score"] = param["base_score"].strip("[]")
+            except Exception:
+                pass
+            return res
+
+        _shap_tree.decode_ubjson_buffer = _safe_decode_ubjson
+    except Exception:
+        pass
 except ImportError:
     shap = None
     HAS_SHAP = False
@@ -182,7 +202,7 @@ def get_candidate_architectures(imbalance_ratio: float) -> dict:
         "Random Forest (Class-Weighted)": {
             "classifier": RandomForestClassifier(
                 n_estimators=100, random_state=config.RANDOM_SEED,
-                class_weight="balanced", n_jobs=2,
+                class_weight="balanced", n_jobs=8,
                 max_depth=12, min_samples_leaf=10,
             ),
             "imbalance_strategy": "class_weighted",
@@ -190,7 +210,7 @@ def get_candidate_architectures(imbalance_ratio: float) -> dict:
         "Random Forest (SMOTE)": {
             "classifier": RandomForestClassifier(
                 n_estimators=100, random_state=config.RANDOM_SEED,
-                class_weight=None, n_jobs=2,
+                class_weight=None, n_jobs=8,
                 max_depth=12, min_samples_leaf=10,
             ),
             "imbalance_strategy": "smote",
@@ -226,7 +246,7 @@ def get_candidate_architectures(imbalance_ratio: float) -> dict:
                 scale_pos_weight=imbalance_ratio,
                 learning_rate=0.1, max_depth=5,
                 subsample=0.8, colsample_bytree=0.8,
-                n_jobs=2,
+                n_jobs=8,
                 tree_method="hist",
             ),
             "imbalance_strategy": "class_weighted",
@@ -297,11 +317,28 @@ def run_calibrated_oof_cv(
         for k in ["accuracy", "precision", "recall", "f1", "roc_auc", "pr_auc", "brier_score", "mean_prob"]
     }
 
+    # Generate 100-point curves across full OOF probabilities (STEP 23)
+    fpr, tpr, _ = roc_curve(y, oof_probs)
+    prec_c, rec_c, _ = precision_recall_curve(y, oof_probs)
+    idx_roc = np.linspace(0, len(fpr) - 1, min(100, len(fpr))).astype(int)
+    idx_pr = np.linspace(0, len(prec_c) - 1, min(100, len(prec_c))).astype(int)
+
+    roc_curve_100 = {
+        "fpr": [float(round(fpr[i], 5)) for i in idx_roc],
+        "tpr": [float(round(tpr[i], 5)) for i in idx_roc],
+    }
+    pr_curve_100 = {
+        "precision": [float(round(prec_c[i], 5)) for i in idx_pr],
+        "recall": [float(round(rec_c[i], 5)) for i in idx_pr],
+    }
+
     return {
         "fold_metrics": fold_metrics,
         "mean": mean_m,
         "std": std_m,
         "oof_probs": oof_probs,
+        "roc_curve": roc_curve_100,
+        "pr_curve": pr_curve_100,
     }
 
 
@@ -364,14 +401,20 @@ def tune_threshold_oof(y_true: pd.Series, oof_probs: np.ndarray) -> dict:
 
 # ── Quantile Calibration Diagnostics ─────────────────────────────────────────
 
-def compute_calibration_diagnostics(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = 10) -> dict:
+def compute_calibration_diagnostics(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+    n_bins: int = 10,
+    y_train_prevalence: Optional[float] = None,
+) -> dict:
     """
     Compute quantile-binned reliability curve, Brier score, baseline Brier score, and ECE.
     Quantile binning guarantees equal sample counts per bin, preventing skewed endpoints.
+    Baseline Brier uses the training prevalence as uninformative prior (STEP 12).
     """
     brier = float(brier_score_loss(y_true, y_prob))
-    baseline_prev = float(np.mean(y_true))
-    baseline_brier = float(brier_score_loss(y_true, np.repeat(baseline_prev, len(y_true))))
+    baseline_prev = float(y_train_prevalence) if y_train_prevalence is not None else float(np.mean(y_true))
+    baseline_brier = float(np.mean((y_true - baseline_prev) ** 2))
 
     quantiles = np.linspace(0, 1, n_bins + 1)
     bin_edges = np.unique(np.quantile(y_prob, quantiles))
@@ -404,7 +447,7 @@ def compute_calibration_diagnostics(y_true: np.ndarray, y_prob: np.ndarray, n_bi
         "fraction_positive": frac_pos,
         "bin_counts": bin_counts,
         "mean_probability": float(np.mean(y_prob)),
-        "observed_prevalence": baseline_prev,
+        "observed_prevalence": float(np.mean(y_true)),
     }
 
 
@@ -551,6 +594,7 @@ def evaluate_on_test(
     X_test_raw: pd.DataFrame,
     y_test: pd.Series,
     threshold: float,
+    y_train_prevalence: Optional[float] = None,
 ) -> dict:
     """Evaluate locked model on internal test set (20% holdout)."""
     model = final_pipeline["model"]
@@ -563,9 +607,13 @@ def evaluate_on_test(
     fpr, tpr, _ = roc_curve(y_test, y_prob)
     prec_curve, rec_curve, _ = precision_recall_curve(y_test, y_prob)
 
-    cal_diag = compute_calibration_diagnostics(y_true_arr, y_prob)
+    cal_diag = compute_calibration_diagnostics(y_true_arr, y_prob, y_train_prevalence=y_train_prevalence)
     bootstrap_ci = compute_bootstrap_ci(y_true_arr, y_prob, threshold)
     triage_lift = compute_triage_lift(y_true_arr, y_prob)
+
+    # Uniformly downsample to ~100 points for smooth frontend charts (STEP 23)
+    idx_roc = np.linspace(0, len(fpr) - 1, min(100, len(fpr))).astype(int)
+    idx_pr = np.linspace(0, len(prec_curve) - 1, min(100, len(prec_curve))).astype(int)
 
     return {
         "metrics_optimal_threshold": {
@@ -587,12 +635,12 @@ def evaluate_on_test(
         "calibration_diagnostics": cal_diag,
         "confusion_matrix_optimal": cm_opt,
         "roc_curve": {
-            "fpr": fpr.tolist()[:200],
-            "tpr": tpr.tolist()[:200],
+            "fpr": [float(round(fpr[i], 5)) for i in idx_roc],
+            "tpr": [float(round(tpr[i], 5)) for i in idx_roc],
         },
         "pr_curve": {
-            "precision": prec_curve.tolist()[:200],
-            "recall": rec_curve.tolist()[:200],
+            "precision": [float(round(prec_curve[i], 5)) for i in idx_pr],
+            "recall": [float(round(rec_curve[i], 5)) for i in idx_pr],
         },
         "test_probabilities": y_prob,
     }
@@ -613,20 +661,31 @@ def train(data_path: str = None, output_dir: str = None) -> dict:
 
     git_commit = _get_git_commit()
     date_str = datetime.datetime.now().strftime("%Y%m%d")
-    version = f"v4.1.0-{date_str}-{git_commit}"
+    version = f"v4.1.1-{date_str}-{git_commit}"
 
     logger.info("=" * 75)
-    logger.info("InsureAI -- Real Data Training Pipeline v4.1 (Production Grade)")
+    logger.info("InsureAI -- Real Data Training Pipeline v4.1.1 (Production Grade)")
     logger.info("Release Version: %s | Git Commit: %s", version, git_commit)
     logger.info("Dataset: %s", data_path)
     logger.info("=" * 75)
 
     # ── 1. Canonical Schema Hash Verification ─────────────────────────────
     schema_path = "schemas/vehicle_insurance_v1.json"
+    schema_version_path = "schemas/schema_version.json"
     if not os.path.exists(schema_path):
         raise RuntimeError(f"Canonical schema not found at {schema_path}")
-    canonical_schema_hash = _file_hash(schema_path)
-    logger.info("Canonical Schema Hash: %s", canonical_schema_hash)
+    if not os.path.exists(schema_version_path):
+        raise RuntimeError(f"Canonical schema version manifest not found at {schema_version_path}")
+
+    with open(schema_version_path, "r", encoding="utf-8") as f:
+        schema_ver = json.load(f)
+
+    canonical_document_sha256 = schema_ver.get("document_sha256") or _file_hash(schema_path)
+    canonical_feature_set_sha256 = schema_ver.get("feature_set_sha256")
+    canonical_schema_hash = canonical_feature_set_sha256
+
+    logger.info("Canonical Document SHA-256:    %s", canonical_document_sha256)
+    logger.info("Canonical Feature Set SHA-256: %s", canonical_feature_set_sha256)
 
     # ── 2. Load & Validate ─────────────────────────────────────────────────
     df = pd.read_csv(data_path, low_memory=False)
@@ -768,7 +827,10 @@ def train(data_path: str = None, output_dir: str = None) -> dict:
 
     # ── 9. Evaluate Final Champion on LOCKED 20% Holdout (ONCE ONLY) ──────
     logger.info("Performing final evaluation on locked holdout set (11,719 rows)...")
-    test_eval = evaluate_on_test(final_pipeline, X_test_raw, y_test, optimal_threshold)
+    test_eval = evaluate_on_test(
+        final_pipeline, X_test_raw, y_test, optimal_threshold,
+        y_train_prevalence=float(y_train.mean()),
+    )
     m = test_eval["metrics_optimal_threshold"]
     ci = test_eval["confidence_intervals_95"]
 
@@ -823,10 +885,10 @@ def train(data_path: str = None, output_dir: str = None) -> dict:
             ]
             logger.info("[OK] Successfully computed Global SHAP importance for %d features.", len(global_shap))
         except Exception as e:
-            logger.warning("SHAP calculation fallback: %s", e)
-            global_shap = feature_importance
+            logger.error("SHAP calculation error: %s", e)
+            raise RuntimeError(f"Genuine TreeExplainer Global SHAP computation failed: {e}") from e
     else:
-        global_shap = feature_importance
+        raise RuntimeError("SHAP library is not installed; cannot generate mandatory global SHAP artifact.")
 
     # ── 11. Export Global Curves and Comparisons ──────────────────────────
     roc_curves = {}
@@ -877,12 +939,15 @@ def train(data_path: str = None, output_dir: str = None) -> dict:
         "area_cluster",
     ]
     oof_quantiles = np.linspace(0, 1, 11)
-    pred_bins = np.percentile(champion_oof, oof_quantiles * 100).tolist()
-    pred_bins_arr = np.array(pred_bins)
-    pred_bins_arr[0] = -np.inf
-    pred_bins_arr[-1] = np.inf
-    pred_counts, _ = np.histogram(champion_oof, bins=pred_bins_arr)
-    pred_dist = (pred_counts / len(champion_oof)).tolist()
+    pred_bins = np.unique(np.percentile(champion_oof, oof_quantiles * 100)).tolist()
+    pred_bins_arr = np.array(pred_bins, dtype=float)
+    if len(pred_bins_arr) >= 2:
+        pred_bins_arr[0] = -np.inf
+        pred_bins_arr[-1] = np.inf
+        pred_counts, _ = np.histogram(champion_oof, bins=pred_bins_arr)
+        pred_dist = (pred_counts / len(champion_oof)).tolist()
+    else:
+        pred_dist = [1.0]
 
     drift_baseline = {
         "dataset_version": f"train-{date_str}",
@@ -901,8 +966,10 @@ def train(data_path: str = None, output_dir: str = None) -> dict:
         if col in X_train_raw.columns:
             vals = X_train_raw[col].dropna().values.astype(float)
             quantiles = np.linspace(0, 1, 6)
-            bins = np.percentile(vals, quantiles * 100).tolist()
-            bins_arr = np.array(bins)
+            bins = np.unique(np.percentile(vals, quantiles * 100)).tolist()
+            if len(bins) < 2:
+                continue
+            bins_arr = np.array(bins, dtype=float)
             bins_arr[0] = -np.inf
             bins_arr[-1] = np.inf
             counts, _ = np.histogram(vals, bins=bins_arr)
@@ -930,12 +997,16 @@ def train(data_path: str = None, output_dir: str = None) -> dict:
         "training_rows": len(X_train_raw),
         "holdout_rows": len(X_test_raw),
         "data_mode": "real",
-        "schema_hash": canonical_schema_hash,
+        "document_sha256": canonical_document_sha256,
+        "feature_set_sha256": canonical_feature_set_sha256,
+        "schema_hash": canonical_feature_set_sha256,
         "dataset": {
             "name": "Vehicle Insurance Claims (Real World)",
             "path": data_path,
             "hash": dataset_hash,
-            "schema_hash": canonical_schema_hash,
+            "document_sha256": canonical_document_sha256,
+            "feature_set_sha256": canonical_feature_set_sha256,
+            "schema_hash": canonical_feature_set_sha256,
             "rows": len(df),
             "cols": df.shape[1],
             "target_column": TARGET_COL,
@@ -1022,7 +1093,11 @@ def train(data_path: str = None, output_dir: str = None) -> dict:
     release_dir = os.path.join(reg.releases_dir, version)
     _safe_json(os.path.join(release_dir, "calibration.json"), test_eval["calibration_diagnostics"])
     _safe_json(os.path.join(release_dir, "global_shap_importance.json"), global_shap)
-    # Re-verify/generate release checksums to include calibration.json and global_shap_importance.json
+    _safe_json(os.path.join(release_dir, "roc_curve.json"), test_eval["roc_curve"])
+    _safe_json(os.path.join(release_dir, "pr_curve.json"), test_eval["pr_curve"])
+    _safe_json(os.path.join(output_dir, "roc_curve.json"), test_eval["roc_curve"])
+    _safe_json(os.path.join(output_dir, "pr_curve.json"), test_eval["pr_curve"])
+    # Re-verify/generate release checksums to include calibration.json, shap, and curve artifacts
     reg.generate_checksums(release_dir)
 
     logger.info("[OK] Model candidate release packaged at %s", release_dir)

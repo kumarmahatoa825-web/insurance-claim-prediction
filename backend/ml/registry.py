@@ -96,14 +96,20 @@ class ModelRegistry:
     # ── Checksum & Integrity Management ──────────────────────────────────────
 
     def generate_checksums(self, release_dir: str) -> Dict[str, str]:
-        """Generate SHA-256 checksums for model and metadata in a release directory."""
-        model_path = os.path.join(release_dir, "model.joblib")
-        meta_path = os.path.join(release_dir, "metadata.json")
+        """Generate SHA-256 checksums for model, metadata, and all release artifacts."""
+        tracked_files = [
+            "model.joblib",
+            "metadata.json",
+            "calibration.json",
+            "global_shap_importance.json",
+            "roc_curve.json",
+            "pr_curve.json",
+        ]
         checksums = {}
-        if os.path.exists(model_path):
-            checksums["model.joblib"] = compute_sha256(model_path)
-        if os.path.exists(meta_path):
-            checksums["metadata.json"] = compute_sha256(meta_path)
+        for fname in tracked_files:
+            fpath = os.path.join(release_dir, fname)
+            if os.path.exists(fpath):
+                checksums[fname] = compute_sha256(fpath)
 
         csum_path = os.path.join(release_dir, "checksums.json")
         with open(csum_path, "w", encoding="utf-8") as f:
@@ -133,6 +139,21 @@ class ModelRegistry:
                     f"(expected {expected_hash}, got {actual_hash})"
                 )
         return True
+
+    def verify_release(self, version: str) -> Tuple[bool, str]:
+        """
+        Verify release directory exists, contains checksums.json, and all files match recorded hashes.
+        Never auto-generates missing checksums on verification.
+        Returns: (is_valid, reason)
+        """
+        release_dir = os.path.join(self.releases_dir, version)
+        if not os.path.isdir(release_dir):
+            return False, f"Release directory does not exist: {release_dir}"
+        try:
+            self.verify_release_integrity(release_dir)
+            return True, "Integrity verified successfully"
+        except Exception as e:
+            return False, str(e)
 
     # ── Mandatory Pointer Management ─────────────────────────────────────────
 
@@ -315,18 +336,27 @@ class ModelRegistry:
                 meta_dict = json.load(f)
 
         # Verify against canonical schema hash
-        canonical_hash = None
-        schema_path = os.path.abspath(os.path.join(self.models_dir, "..", "schemas", "vehicle_insurance_v1.json"))
-        if os.path.exists(schema_path):
-            with open(schema_path, "rb") as sf:
-                canonical_hash = f"sha256:{hashlib.sha256(sf.read()).hexdigest()}"
+        canonical_feature_hash = None
+        canonical_doc_hash = None
+        schema_version_path = os.path.abspath(os.path.join(self.models_dir, "..", "schemas", "schema_version.json"))
+        if os.path.exists(schema_version_path):
+            try:
+                with open(schema_version_path, "r", encoding="utf-8") as svf:
+                    s_meta = json.load(svf)
+                    canonical_feature_hash = s_meta.get("feature_set_sha256")
+                    canonical_doc_hash = s_meta.get("document_sha256")
+            except Exception as se:
+                logger.warning("Failed reading schema_version.json: %s", se)
 
-        candidate_schema_hash = meta_dict.get("dataset", {}).get("schema_hash") or meta_dict.get("schema_hash")
+        candidate_feature_hash = meta_dict.get("feature_set_sha256")
+        candidate_doc_hash = meta_dict.get("document_sha256") or meta_dict.get("dataset", {}).get("schema_hash")
         feature_count = meta_dict.get("feature_count", 0)
         data_mode = meta_dict.get("data_mode", "real")
 
-        if canonical_hash and candidate_schema_hash:
-            schema_ok = (candidate_schema_hash == canonical_hash)
+        if canonical_feature_hash and candidate_feature_hash:
+            schema_ok = (candidate_feature_hash == canonical_feature_hash)
+        elif canonical_doc_hash and candidate_doc_hash:
+            schema_ok = (candidate_doc_hash == canonical_doc_hash)
         else:
             schema_ok = (data_mode == "real" and feature_count >= 80)
 

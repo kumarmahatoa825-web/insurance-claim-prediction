@@ -97,7 +97,17 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down InsureAI API...")
 
 
+import uuid
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        req_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        request.state.request_id = req_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = req_id
+        return response
 
 app = FastAPI(
     title="InsureAI — Intelligent Insurance Claim Prediction",
@@ -105,6 +115,8 @@ app = FastAPI(
     version=settings.APP_VERSION,
     lifespan=lifespan,
 )
+
+app.add_middleware(RequestIDMiddleware)
 
 # CORS Configuration
 origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
@@ -119,10 +131,14 @@ app.add_middleware(
 # Global 500 handler to protect internal stack traces
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    logger.error("Internal server error: %s", exc, exc_info=True)
+    req_id = getattr(request.state, "request_id", "unknown")
+    logger.error("[%s] Internal server error: %s", req_id, exc, exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": "An internal server error occurred. Please check server logs."},
+        content={
+            "detail": "An internal server error occurred. Please contact system support.",
+            "request_id": req_id,
+        },
     )
 
 # Mount API router

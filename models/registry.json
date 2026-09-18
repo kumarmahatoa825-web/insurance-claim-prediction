@@ -1,26 +1,26 @@
 {
   "champion": {
-    "version": "v4.1.0-20260918-6640e9b",
+    "version": "v4.1.1-20260919-7771382",
     "model_name": "XGBoost (Scale-Pos-Weight)",
-    "model_path": "models\\releases\\v4.1.0-20260918-6640e9b\\model.joblib",
-    "metadata_path": "models\\releases\\v4.1.0-20260918-6640e9b\\metadata.json",
+    "model_path": "models\\releases\\v4.1.1-20260919-7771382\\model.joblib",
+    "metadata_path": "models\\releases\\v4.1.1-20260919-7771382\\metadata.json",
     "status": "champion",
     "approval_status": "approved",
-    "registered_at": "2026-09-18T20:28:22.956133",
+    "registered_at": "2026-09-19T01:35:37.304585",
     "metrics": {
-      "cv_f1_mean": 0.16092174776105997,
-      "cv_roc_auc_mean": 0.6402640284931993,
-      "cv_pr_auc_mean": 0.10060867872358958,
-      "test_f1": 0.16755706653715396,
-      "test_roc_auc": 0.6497680736621387,
-      "test_pr_auc": 0.10384513559194158,
-      "brier_score": 0.05893487508747199
+      "cv_f1_mean": 0.15936876662294958,
+      "cv_roc_auc_mean": 0.6393354150237733,
+      "cv_pr_auc_mean": 0.10020587363345008,
+      "test_f1": 0.1672455249799626,
+      "test_roc_auc": 0.6509838028383019,
+      "test_pr_auc": 0.10365689079193557,
+      "brier_score": 0.05893222275486869
     },
-    "threshold": 0.08,
-    "training_date": "2026-09-18T20:28:22.900220",
+    "threshold": 0.083,
+    "training_date": "2026-09-19T01:35:37.209632",
     "data_mode": "real",
-    "approved_at": "2026-09-18T20:31:28.666835",
-    "promoted_at": "2026-09-18T20:33:05.039009",
+    "approved_at": "2026-09-19T01:35:52.246595",
+    "promoted_at": "2026-09-19T01:36:01.976409",
     "promotion_gates": {
       "artifact_integrity": true,
       "schema_compatible": true,
@@ -135,9 +135,42 @@
         "candidate_not_materially_worse_than_champion": true
       },
       "archived_at": "2026-09-18T20:33:05.039009"
+    },
+    {
+      "version": "v4.1.0-20260918-6640e9b",
+      "model_name": "XGBoost (Scale-Pos-Weight)",
+      "model_path": "models\\releases\\v4.1.0-20260918-6640e9b\\model.joblib",
+      "metadata_path": "models\\releases\\v4.1.0-20260918-6640e9b\\metadata.json",
+      "status": "archived",
+      "approval_status": "approved",
+      "registered_at": "2026-09-18T20:28:22.956133",
+      "metrics": {
+        "cv_f1_mean": 0.16092174776105997,
+        "cv_roc_auc_mean": 0.6402640284931993,
+        "cv_pr_auc_mean": 0.10060867872358958,
+        "test_f1": 0.16755706653715396,
+        "test_roc_auc": 0.6497680736621387,
+        "test_pr_auc": 0.10384513559194158,
+        "brier_score": 0.05893487508747199
+      },
+      "threshold": 0.08,
+      "training_date": "2026-09-18T20:28:22.900220",
+      "data_mode": "real",
+      "approved_at": "2026-09-18T20:31:28.666835",
+      "promoted_at": "2026-09-18T20:33:05.039009",
+      "promotion_gates": {
+        "artifact_integrity": true,
+        "schema_compatible": true,
+        "calibration_valid": true,
+        "pr_auc_valid": true,
+        "roc_auc_valid": true,
+        "fairness_check": true,
+        "candidate_not_materially_worse_than_champion": true
+      },
+      "archived_at": "2026-09-19T01:36:01.976409"
     }
   ],
-  "last_updated": "2026-09-18T20:33:05.040048",
+  "last_updated": "2026-09-19T01:36:01.977038",
   "deployment_history": [
     {
       "version": "v4.0-real",
@@ -147,6 +180,11 @@
     {
       "version": "v4.1.0-20260918-6640e9b",
       "activated_at": "2026-09-18T20:33:05.040048",
+      "reason": "promotion"
+    },
+    {
+      "version": "v4.1.1-20260919-7771382",
+      "activated_at": "2026-09-19T01:36:01.977038",
       "reason": "promotion"
     }
   ]
