@@ -1,0 +1,217 @@
+{
+  "schema_name": "vehicle_insurance_v1",
+  "version": "1.0.0",
+  "target_column": "is_claim",
+  "id_column": "policy_id",
+  "feature_names": [
+    "policy_tenure",
+    "age_of_car",
+    "age_of_policyholder",
+    "area_cluster",
+    "population_density",
+    "make",
+    "segment",
+    "model",
+    "fuel_type",
+    "max_torque",
+    "max_power",
+    "engine_type",
+    "airbags",
+    "is_esc",
+    "is_adjustable_steering",
+    "is_tpms",
+    "is_parking_sensors",
+    "is_parking_camera",
+    "rear_brakes_type",
+    "displacement",
+    "cylinder",
+    "transmission_type",
+    "gear_box",
+    "steering_type",
+    "turning_radius",
+    "length",
+    "width",
+    "height",
+    "gross_weight",
+    "is_front_fog_lights",
+    "is_rear_window_wiper",
+    "is_rear_window_washer",
+    "is_rear_window_defogger",
+    "is_brake_assist",
+    "is_power_door_locks",
+    "is_central_locking",
+    "is_power_steering",
+    "is_driver_seat_height_adjustable",
+    "is_day_night_rear_view_mirror",
+    "is_ecw",
+    "is_speed_alert",
+    "ncap_rating"
+  ],
+  "categorical_features": {
+    "make": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "model": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5",
+      "M6",
+      "M7",
+      "M8",
+      "M9",
+      "M10",
+      "M11"
+    ],
+    "segment": [
+      "A",
+      "B1",
+      "B2",
+      "C1",
+      "C2",
+      "Utility"
+    ],
+    "area_cluster": [
+      "C1",
+      "C2",
+      "C3",
+      "C4",
+      "C5",
+      "C6",
+      "C7",
+      "C8",
+      "C9",
+      "C10",
+      "C11",
+      "C12",
+      "C13",
+      "C14",
+      "C15",
+      "C16",
+      "C17",
+      "C18",
+      "C19",
+      "C20",
+      "C21",
+      "C22"
+    ],
+    "fuel_type": [
+      "CNG",
+      "Diesel",
+      "Petrol"
+    ],
+    "transmission_type": [
+      "Automatic",
+      "Manual"
+    ],
+    "steering_type": [
+      "Electric",
+      "Manual",
+      "Power"
+    ],
+    "rear_brakes_type": [
+      "Disc",
+      "Drum"
+    ],
+    "engine_type": [
+      "1.0 SCe",
+      "1.2 L K Series Engine",
+      "1.2 L K12N Dualjet",
+      "1.5 L U2 CRDi",
+      "1.5 Turbocharged Revotorq",
+      "1.5 Turbocharged Revotron",
+      "F8D Petrol Engine",
+      "G12B",
+      "K Series Dual jet",
+      "K10C",
+      "i-DTEC"
+    ]
+  },
+  "binary_features": [
+    "is_esc",
+    "is_adjustable_steering",
+    "is_tpms",
+    "is_parking_sensors",
+    "is_parking_camera",
+    "is_front_fog_lights",
+    "is_rear_window_wiper",
+    "is_rear_window_washer",
+    "is_rear_window_defogger",
+    "is_brake_assist",
+    "is_power_door_locks",
+    "is_central_locking",
+    "is_power_steering",
+    "is_driver_seat_height_adjustable",
+    "is_day_night_rear_view_mirror",
+    "is_ecw",
+    "is_speed_alert"
+  ],
+  "numeric_features": {
+    "policy_tenure": {
+      "min": 0.0,
+      "max": 2.0
+    },
+    "age_of_car": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "age_of_policyholder": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "population_density": {
+      "min": 0,
+      "max": 150000
+    },
+    "airbags": {
+      "min": 1,
+      "max": 10
+    },
+    "displacement": {
+      "min": 500,
+      "max": 2500
+    },
+    "cylinder": {
+      "min": 2,
+      "max": 8
+    },
+    "gear_box": {
+      "min": 4,
+      "max": 8
+    },
+    "turning_radius": {
+      "min": 3.0,
+      "max": 10.0
+    },
+    "length": {
+      "min": 2000,
+      "max": 6000
+    },
+    "width": {
+      "min": 1000,
+      "max": 3000
+    },
+    "height": {
+      "min": 1000,
+      "max": 3000
+    },
+    "gross_weight": {
+      "min": 500,
+      "max": 4000
+    },
+    "ncap_rating": {
+      "min": 0,
+      "max": 5
+    }
+  },
+  "string_numeric_features": [
+    "max_torque",
+    "max_power"
+  ],
+  "feature_schema_hash": "76e05d11c94fb38d6732c7ef18b1ef5664d3cacc8ec9497bcbbd5fd190d3d4bb"
+}
