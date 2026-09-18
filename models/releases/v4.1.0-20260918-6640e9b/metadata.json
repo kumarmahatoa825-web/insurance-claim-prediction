@@ -1,0 +1,607 @@
+{
+  "version": "v4.1.0-20260918-6640e9b",
+  "model_name": "XGBoost (Scale-Pos-Weight)",
+  "code_commit": "6640e9b",
+  "training_rows": 46873,
+  "holdout_rows": 11719,
+  "data_mode": "real",
+  "schema_hash": "sha256:b858ec67201eb6c8cc903132f518615d68947e1230dc3d1a83a93527162149a7",
+  "dataset": {
+    "name": "Vehicle Insurance Claims (Real World)",
+    "path": "data/real/train.csv",
+    "hash": "sha256:c11cb2116cfdce32786e2ae6340fb1be9df4d182e604c0c677a43506c92d03bc",
+    "schema_hash": "sha256:b858ec67201eb6c8cc903132f518615d68947e1230dc3d1a83a93527162149a7",
+    "rows": 58592,
+    "cols": 44,
+    "target_column": "is_claim",
+    "claim_rate": 0.06396777717094485,
+    "imbalance_ratio": 14.632870864461045,
+    "class_distribution": {
+      "no_claim": 54844,
+      "claim": 3748
+    }
+  },
+  "feature_names": [
+    "policy_tenure",
+    "age_of_car",
+    "age_of_policyholder",
+    "population_density",
+    "airbags",
+    "displacement",
+    "cylinder",
+    "gear_box",
+    "turning_radius",
+    "length",
+    "width",
+    "height",
+    "gross_weight",
+    "ncap_rating",
+    "torque_value",
+    "torque_rpm",
+    "power_value",
+    "power_rpm",
+    "safety_score",
+    "age_tenure_ratio",
+    "car_size",
+    "power_to_weight",
+    "torque_to_weight",
+    "is_esc",
+    "is_adjustable_steering",
+    "is_tpms",
+    "is_parking_sensors",
+    "is_parking_camera",
+    "is_front_fog_lights",
+    "is_rear_window_wiper",
+    "is_rear_window_washer",
+    "is_rear_window_defogger",
+    "is_brake_assist",
+    "is_power_door_locks",
+    "is_central_locking",
+    "is_power_steering",
+    "is_driver_seat_height_adjustable",
+    "is_day_night_rear_view_mirror",
+    "is_ecw",
+    "is_speed_alert",
+    "area_cluster_C1",
+    "area_cluster_C10",
+    "area_cluster_C11",
+    "area_cluster_C12",
+    "area_cluster_C13",
+    "area_cluster_C14",
+    "area_cluster_C15",
+    "area_cluster_C16",
+    "area_cluster_C17",
+    "area_cluster_C18",
+    "area_cluster_C19",
+    "area_cluster_C2",
+    "area_cluster_C20",
+    "area_cluster_C21",
+    "area_cluster_C22",
+    "area_cluster_C3",
+    "area_cluster_C4",
+    "area_cluster_C5",
+    "area_cluster_C6",
+    "area_cluster_C7",
+    "area_cluster_C8",
+    "area_cluster_C9",
+    "segment_A",
+    "segment_B1",
+    "segment_B2",
+    "segment_C1",
+    "segment_C2",
+    "segment_Utility",
+    "fuel_type_CNG",
+    "fuel_type_Diesel",
+    "fuel_type_Petrol",
+    "rear_brakes_type_Disc",
+    "rear_brakes_type_Drum",
+    "transmission_type_Automatic",
+    "transmission_type_Manual",
+    "steering_type_Electric",
+    "steering_type_Manual",
+    "steering_type_Power",
+    "engine_type_1.0 SCe",
+    "engine_type_1.2 L K Series Engine",
+    "engine_type_1.2 L K12N Dualjet",
+    "engine_type_1.5 L U2 CRDi",
+    "engine_type_1.5 Turbocharged Revotorq",
+    "engine_type_1.5 Turbocharged Revotron",
+    "engine_type_F8D Petrol Engine",
+    "engine_type_G12B",
+    "engine_type_K Series Dual jet",
+    "engine_type_K10C",
+    "engine_type_i-DTEC",
+    "make_1",
+    "make_2",
+    "make_3",
+    "make_4",
+    "make_5",
+    "model_M1",
+    "model_M10",
+    "model_M11",
+    "model_M2",
+    "model_M3",
+    "model_M4",
+    "model_M5",
+    "model_M6",
+    "model_M7",
+    "model_M8",
+    "model_M9"
+  ],
+  "feature_count": 105,
+  "cv_strategy": "StratifiedKFold(n_splits=5, shuffle=True)",
+  "calibration": {
+    "method": "sigmoid",
+    "cross_fitted": true,
+    "inner_cv": 3,
+    "brier_score": 0.05893487508747199,
+    "baseline_brier": 0.059902809452867585,
+    "ece": 0.004451539510114595,
+    "diagnostic": "Cross-fitted sigmoid calibration evaluated via quantile-binned reliability curves and ECE."
+  },
+  "model_selection": {
+    "primary_metric": "pr_auc",
+    "secondary_metric": "roc_auc",
+    "calibration_metric": "brier_score",
+    "threshold_metric": "f1",
+    "selected_model": "XGBoost (Scale-Pos-Weight)",
+    "hierarchy": [
+      "pr_auc",
+      "roc_auc",
+      "brier_score"
+    ]
+  },
+  "threshold": {
+    "selected": 0.08,
+    "objective": "maximize_oof_f1",
+    "source": "calibrated_oof"
+  },
+  "default_threshold": 0.08,
+  "cost_optimal_threshold": 0.09,
+  "cv_metrics": {
+    "mean": {
+      "accuracy": 0.5496765715098499,
+      "precision": 0.0913491534528943,
+      "recall": 0.6751190873678353,
+      "f1": 0.16092174776105997,
+      "roc_auc": 0.6402640284931993,
+      "pr_auc": 0.10060867872358958,
+      "brier_score": 0.05902843500190432,
+      "mean_prob": 0.06401838429600286
+    },
+    "std": {
+      "accuracy": 0.004714365295500457,
+      "precision": 0.0012410038722949145,
+      "recall": 0.009308568636829431,
+      "f1": 0.0021072779528042516,
+      "roc_auc": 0.0073518088504650175,
+      "pr_auc": 0.00441562854696085,
+      "brier_score": 0.0001006687124358493,
+      "mean_prob": 0.0002681280924846622
+    },
+    "fold_metrics": [
+      {
+        "fold": 1,
+        "accuracy": 0.5530666666666667,
+        "precision": 0.08999543170397442,
+        "recall": 0.6566666666666666,
+        "f1": 0.15829650462032946,
+        "roc_auc": 0.6292520417853751,
+        "pr_auc": 0.0927468702580409,
+        "brier_score": 0.05920724715062569,
+        "mean_prob": 0.06369633910079796,
+        "time_s": 4.26
+      },
+      {
+        "fold": 2,
+        "accuracy": 0.5496533333333333,
+        "precision": 0.09193330328977016,
+        "recall": 0.68,
+        "f1": 0.16196903533148074,
+        "roc_auc": 0.6411581196581198,
+        "pr_auc": 0.09890043190778355,
+        "brier_score": 0.05906515936160572,
+        "mean_prob": 0.06426725511338975,
+        "time_s": 2.35
+      },
+      {
+        "fold": 3,
+        "accuracy": 0.5563733333333334,
+        "precision": 0.09344299748686315,
+        "recall": 0.6816666666666666,
+        "f1": 0.1643560377737593,
+        "roc_auc": 0.6510182336182336,
+        "pr_auc": 0.10403952930241848,
+        "brier_score": 0.05895379127692858,
+        "mean_prob": 0.06369710224674807,
+        "time_s": 2.39
+      },
+      {
+        "fold": 4,
+        "accuracy": 0.5432046084915725,
+        "precision": 0.09032258064516129,
+        "recall": 0.67779632721202,
+        "f1": 0.15940321947389086,
+        "roc_auc": 0.6359254978620588,
+        "pr_auc": 0.10471440001276106,
+        "brier_score": 0.058988414021432324,
+        "mean_prob": 0.06413563286590082,
+        "time_s": 2.36
+      },
+      {
+        "fold": 5,
+        "accuracy": 0.5460849157243439,
+        "precision": 0.09105145413870246,
+        "recall": 0.679465776293823,
+        "f1": 0.16058394160583941,
+        "roc_auc": 0.6439662495422094,
+        "pr_auc": 0.10264216213694391,
+        "brier_score": 0.058927563198929285,
+        "mean_prob": 0.06429559215317769,
+        "time_s": 2.38
+      }
+    ]
+  },
+  "holdout_metrics": {
+    "threshold": 0.08,
+    "accuracy": 0.7074835736837615,
+    "precision": 0.10243467933491686,
+    "recall": 0.46,
+    "f1": 0.16755706653715396,
+    "roc_auc": 0.6497680736621387,
+    "pr_auc": 0.10384513559194158,
+    "brier_score": 0.05893487508747199,
+    "baseline_brier": 0.059902809452867585,
+    "ece": 0.004451539510114595,
+    "mean_probability": 0.06384711520824285,
+    "observed_prevalence": 0.06399863469579316
+  },
+  "test_metrics": {
+    "threshold": 0.08,
+    "accuracy": 0.7074835736837615,
+    "precision": 0.10243467933491686,
+    "recall": 0.46,
+    "f1": 0.16755706653715396,
+    "roc_auc": 0.6497680736621387,
+    "pr_auc": 0.10384513559194158,
+    "brier_score": 0.05893487508747199,
+    "baseline_brier": 0.059902809452867585,
+    "ece": 0.004451539510114595,
+    "mean_probability": 0.06384711520824285,
+    "observed_prevalence": 0.06399863469579316
+  },
+  "confidence_intervals_95": {
+    "roc_auc_95_ci": [
+      0.6304088155522523,
+      0.6693522520301249
+    ],
+    "pr_auc_95_ci": [
+      0.09297292372245408,
+      0.11613140804039049
+    ],
+    "f1_95_ci": [
+      0.15365830298366337,
+      0.18195347908551937
+    ],
+    "brier_95_ci": [
+      0.05515854048996955,
+      0.062402957903773516
+    ]
+  },
+  "triage_and_lift": {
+    "triage_at_k": {
+      "top_5pct": {
+        "k_records": 585,
+        "precision": 0.14188034188034188,
+        "recall": 0.11066666666666666,
+        "lift": 2.216927635327635
+      },
+      "top_10pct": {
+        "k_records": 1171,
+        "precision": 0.1263877028181042,
+        "recall": 0.19733333333333333,
+        "lift": 1.9748499857671507
+      },
+      "top_20pct": {
+        "k_records": 2343,
+        "precision": 0.11011523687580026,
+        "recall": 0.344,
+        "lift": 1.7205872812633376
+      }
+    },
+    "decile_lift_table": [
+      {
+        "decile": 1,
+        "count": 1171,
+        "claims": 148,
+        "claim_rate": 0.1263877028181042,
+        "lift": 1.9748499857671507
+      },
+      {
+        "decile": 2,
+        "count": 1171,
+        "claims": 110,
+        "claim_rate": 0.09393680614859094,
+        "lift": 1.4677939083404496
+      },
+      {
+        "decile": 3,
+        "count": 1171,
+        "claims": 99,
+        "claim_rate": 0.08454312553373185,
+        "lift": 1.3210145175064048
+      },
+      {
+        "decile": 4,
+        "count": 1171,
+        "claims": 93,
+        "claim_rate": 0.07941929974380871,
+        "lift": 1.2409530315969257
+      },
+      {
+        "decile": 5,
+        "count": 1171,
+        "claims": 81,
+        "claim_rate": 0.06917164816396243,
+        "lift": 1.0808300597779676
+      },
+      {
+        "decile": 6,
+        "count": 1171,
+        "claims": 62,
+        "claim_rate": 0.05294619982920581,
+        "lift": 0.8273020210646171
+      },
+      {
+        "decile": 7,
+        "count": 1171,
+        "claims": 52,
+        "claim_rate": 0.0444064901793339,
+        "lift": 0.6938662112154853
+      },
+      {
+        "decile": 8,
+        "count": 1171,
+        "claims": 50,
+        "claim_rate": 0.04269854824935952,
+        "lift": 0.667179049245659
+      },
+      {
+        "decile": 9,
+        "count": 1171,
+        "claims": 32,
+        "claim_rate": 0.027327070879590094,
+        "lift": 0.42699459151722174
+      },
+      {
+        "decile": 10,
+        "count": 1180,
+        "claims": 23,
+        "claim_rate": 0.019491525423728815,
+        "lift": 0.304561581920904
+      }
+    ]
+  },
+  "fairness": {
+    "gate_passed": true,
+    "demographic_parity_disparity": 0.15687000988385624,
+    "equal_opportunity_disparity": 0.15970892787246915,
+    "group_metrics": {
+      "age_young": {
+        "size": 23768,
+        "selection_rate": 0.24360484685291148,
+        "true_positive_rate": 0.39775910364145656
+      },
+      "age_mature": {
+        "size": 23105,
+        "selection_rate": 0.32806751785327853,
+        "true_positive_rate": 0.4949044585987261
+      },
+      "segment_A": {
+        "size": 13794,
+        "selection_rate": 0.21001884877482963,
+        "true_positive_rate": 0.43301435406698563
+      },
+      "segment_B1": {
+        "size": 3335,
+        "selection_rate": 0.21679160419790106,
+        "true_positive_rate": 0.3894736842105263
+      },
+      "segment_B2": {
+        "size": 14702,
+        "selection_rate": 0.36688885865868587,
+        "true_positive_rate": 0.4931640625
+      },
+      "segment_C1": {
+        "size": 2851,
+        "selection_rate": 0.23395299894773763,
+        "true_positive_rate": 0.33519553072625696
+      },
+      "segment_C2": {
+        "size": 11214,
+        "selection_rate": 0.31014802924915286,
+        "true_positive_rate": 0.4625176803394625
+      }
+    }
+  },
+  "confusion_matrix": [
+    [
+      7946,
+      3023
+    ],
+    [
+      405,
+      345
+    ]
+  ],
+  "brier_score": 0.05893487508747199,
+  "baseline_brier": 0.059902809452867585,
+  "feature_importance": [
+    {
+      "feature": "gross_weight",
+      "importance": 0.031491853296756744,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "displacement",
+      "importance": 0.02950166165828705,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "cylinder",
+      "importance": 0.028284836560487747,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "steering_type_Electric",
+      "importance": 0.02812095172703266,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "model_M7",
+      "importance": 0.025996454060077667,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "policy_tenure",
+      "importance": 0.02503078058362007,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "age_of_car",
+      "importance": 0.024600164964795113,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "is_esc",
+      "importance": 0.021462952718138695,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "is_brake_assist",
+      "importance": 0.021153543144464493,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "area_cluster_C18",
+      "importance": 0.017993949353694916,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "age_tenure_ratio",
+      "importance": 0.017916198819875717,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "torque_to_weight",
+      "importance": 0.01728775165975094,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "length",
+      "importance": 0.01640910468995571,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "steering_type_Power",
+      "importance": 0.016393912956118584,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "area_cluster_C21",
+      "importance": 0.016335904598236084,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "area_cluster_C11",
+      "importance": 0.016070807352662086,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "car_size",
+      "importance": 0.016037961468100548,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "ncap_rating",
+      "importance": 0.01592274196445942,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "is_rear_window_defogger",
+      "importance": 0.015843253582715988,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "population_density",
+      "importance": 0.015676943585276604,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "height",
+      "importance": 0.015568139031529427,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "area_cluster_C15",
+      "importance": 0.015226856805384159,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "torque_rpm",
+      "importance": 0.01519778836518526,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "width",
+      "importance": 0.015093478374183178,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "segment_B1",
+      "importance": 0.014435994438827038,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "airbags",
+      "importance": 0.01425890251994133,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "power_to_weight",
+      "importance": 0.014232095330953598,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "area_cluster_C3",
+      "importance": 0.014114403165876865,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "area_cluster_C8",
+      "importance": 0.014058645814657211,
+      "type": "gini_mdi"
+    },
+    {
+      "feature": "area_cluster_C2",
+      "importance": 0.01405493263155222,
+      "type": "gini_mdi"
+    }
+  ],
+  "environment": {
+    "python": "3.10.0",
+    "scikit_learn": "1.7.2",
+    "imbalanced_learn": "0.14.2",
+    "xgboost": "3.2.0",
+    "shap": "0.49.1",
+    "fastapi": "0.137.2"
+  },
+  "responsible_ai": {
+    "risk_score_formula": "risk_score = round(claim_probability * 100)",
+    "risk_score_scale": "Project-defined 0-100 scale. Not an official insurance rating.",
+    "decision_threshold_vs_risk_bands": "Decision threshold converts probability into Likely/Unlikely binary classification. Risk bands convert probability into Low/Moderate/High/Critical project tiers.",
+    "disclaimer": "This model is for educational/demonstration purposes. Predictions are probabilistic estimates and should not be used as the sole basis for real insurance decisions."
+  },
+  "training_date": "2026-09-18T20:28:22.900220",
+  "model_status": "candidate"
+}

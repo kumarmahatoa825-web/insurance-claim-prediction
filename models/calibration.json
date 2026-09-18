@@ -1,0 +1,15 @@
+{
+  "mean_predicted": [
+    0.05777417649364873,
+    0.11335850305069432
+  ],
+  "fraction_positive": [
+    0.05766268771659607,
+    0.11344853493613824
+  ],
+  "brier_score": 0.059041096914726844,
+  "baseline_brier": 0.059902809452867585,
+  "mean_probability": 0.0640872355129701,
+  "observed_prevalence": 0.06399863469579316,
+  "calibration_diagnostic": "Cross-fitted sigmoid calibration evaluated on locked 20% holdout."
+}

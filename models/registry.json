@@ -1,0 +1,153 @@
+{
+  "champion": {
+    "version": "v4.1.0-20260918-6640e9b",
+    "model_name": "XGBoost (Scale-Pos-Weight)",
+    "model_path": "models\\releases\\v4.1.0-20260918-6640e9b\\model.joblib",
+    "metadata_path": "models\\releases\\v4.1.0-20260918-6640e9b\\metadata.json",
+    "status": "champion",
+    "approval_status": "approved",
+    "registered_at": "2026-09-18T20:28:22.956133",
+    "metrics": {
+      "cv_f1_mean": 0.16092174776105997,
+      "cv_roc_auc_mean": 0.6402640284931993,
+      "cv_pr_auc_mean": 0.10060867872358958,
+      "test_f1": 0.16755706653715396,
+      "test_roc_auc": 0.6497680736621387,
+      "test_pr_auc": 0.10384513559194158,
+      "brier_score": 0.05893487508747199
+    },
+    "threshold": 0.08,
+    "training_date": "2026-09-18T20:28:22.900220",
+    "data_mode": "real",
+    "approved_at": "2026-09-18T20:31:28.666835",
+    "promoted_at": "2026-09-18T20:33:05.039009",
+    "promotion_gates": {
+      "artifact_integrity": true,
+      "schema_compatible": true,
+      "calibration_valid": true,
+      "pr_auc_valid": true,
+      "roc_auc_valid": true,
+      "fairness_check": true,
+      "candidate_not_materially_worse_than_champion": true
+    }
+  },
+  "candidates": [
+    {
+      "version": "v4.0-calibrated-20260915",
+      "model_name": "Logistic Regression",
+      "model_path": "models\\releases\\v4.0-calibrated-20260915\\model.joblib",
+      "metadata_path": "models\\releases\\v4.0-calibrated-20260915\\metadata.json",
+      "status": "candidate",
+      "approval_status": "pending",
+      "registered_at": "2026-09-15T13:01:23.387251",
+      "metrics": {
+        "cv_f1_mean": 0,
+        "cv_roc_auc_mean": 0.6077995921026973,
+        "cv_pr_auc_mean": 0.08990352593360348,
+        "test_f1": 0.14252153484729835,
+        "test_roc_auc": 0.585650591059653,
+        "test_pr_auc": 0.0846783968198282,
+        "brier_score": 0.059590524205204026
+      },
+      "threshold": 0.07,
+      "training_date": "2026-09-15T13:01:23.340341",
+      "data_mode": "real"
+    }
+  ],
+  "history": [
+    {
+      "version": "v3.0-real-20260914",
+      "model_name": "Random Forest",
+      "model_path": "models\\candidates\\v3.0-real-20260914\\model.joblib",
+      "metadata_path": "models\\candidates\\v3.0-real-20260914\\metadata.json",
+      "status": "archived",
+      "registered_at": "2026-09-14T20:30:44.494967",
+      "promoted_from": "direct_train",
+      "metrics": {
+        "cv_f1_mean": 0.16433868994873463,
+        "cv_f1_std": 0.004196260835006497,
+        "cv_roc_auc_mean": 0.6384999518983048,
+        "cv_pr_auc_mean": 0.09747686611807722,
+        "test_f1": 0.16200906344410876,
+        "test_roc_auc": 0.639164858540736,
+        "test_pr_auc": 0.1012460549554377,
+        "brier_score": 0.20270502700861084
+      },
+      "threshold": 0.5,
+      "dataset_hash": "c11cb2116cfdce32",
+      "training_date": "2026-09-14T20:30:44.491440",
+      "data_mode": "real",
+      "feature_count": 84,
+      "smote_applied": true,
+      "approval_status": "auto_approved",
+      "archived_at": "2026-09-14T23:45:21.683271"
+    },
+    {
+      "version": "v3.1-calibrated-20260914",
+      "model_name": "Random Forest",
+      "model_path": "models\\champion\\model.joblib",
+      "metadata_path": "models\\champion\\metadata.json",
+      "status": "archived",
+      "registered_at": "2026-09-14T23:45:21.658216",
+      "approval_status": "approved",
+      "metrics": {
+        "cv_f1_mean": 0.16329133001531426,
+        "cv_roc_auc_mean": 0.6384999518983048,
+        "test_f1": 0.1640706126687435,
+        "test_roc_auc": 0.6442981736408666,
+        "brier_score": 0.0593676340621958
+      },
+      "threshold": 0.08,
+      "training_date": "2026-09-14T23:45:21.653947",
+      "approved_at": "2026-09-14T23:45:21.669520",
+      "promoted_at": "2026-09-14T23:45:21.717467",
+      "archived_at": "2026-09-16T18:29:49.714906"
+    },
+    {
+      "version": "v4.0-real",
+      "model_name": "Gradient Boosting",
+      "model_path": "models\\releases\\v4.0-real\\model.joblib",
+      "metadata_path": "models\\releases\\v4.0-real\\metadata.json",
+      "status": "archived",
+      "approval_status": "approved",
+      "registered_at": "2026-09-16T18:29:23.024924",
+      "metrics": {
+        "cv_f1_mean": 0.1569726864388018,
+        "cv_roc_auc_mean": 0.6388969469850828,
+        "cv_pr_auc_mean": 0.09946889847831926,
+        "test_f1": 0.1686806411837238,
+        "test_roc_auc": 0.641971495426505,
+        "test_pr_auc": 0.09886408630491991,
+        "brier_score": 0.059041096914726844
+      },
+      "threshold": 0.08,
+      "training_date": "2026-09-16T18:29:22.957994",
+      "data_mode": "real",
+      "approved_at": "2026-09-16T18:29:49.607248",
+      "promoted_at": "2026-09-16T18:29:49.714906",
+      "promotion_gates": {
+        "artifact_integrity": true,
+        "schema_compatible": true,
+        "calibration_valid": true,
+        "pr_auc_valid": true,
+        "roc_auc_valid": true,
+        "fairness_check": true,
+        "candidate_not_materially_worse_than_champion": true
+      },
+      "archived_at": "2026-09-18T20:33:05.039009"
+    }
+  ],
+  "last_updated": "2026-09-18T20:33:05.040048",
+  "deployment_history": [
+    {
+      "version": "v4.0-real",
+      "activated_at": "2026-09-16T18:29:49.714906",
+      "reason": "promotion"
+    },
+    {
+      "version": "v4.1.0-20260918-6640e9b",
+      "activated_at": "2026-09-18T20:33:05.040048",
+      "reason": "promotion"
+    }
+  ]
+}

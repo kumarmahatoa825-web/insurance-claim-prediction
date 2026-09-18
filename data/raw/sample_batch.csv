@@ -1,0 +1,16 @@
+age,policy_tenure,premium_amount,past_claims,vehicle_age,payment_history,health_score,policy_type,vehicle_type,region
+35,5.0,1200.50,0,2.0,0.95,0.88,Comprehensive,Sedan,Urban
+42,12.5,950.00,1,5.5,0.80,0.75,Basic,SUV,Suburban
+22,1.0,2200.00,2,1.0,0.40,0.60,Comprehensive,Sports,Urban
+55,20.0,800.25,0,10.0,0.99,0.95,Third-Party,Sedan,Rural
+28,3.5,1500.00,0,3.0,0.85,0.70,Comprehensive,SUV,Urban
+30,4.0,1100.00,3,4.0,0.30,0.65,Basic,Sedan,Suburban
+60,25.0,700.00,0,12.0,1.00,0.90,Comprehensive,SUV,Rural
+25,2.0,1800.50,1,2.5,0.60,0.80,Basic,Sports,Urban
+45,10.0,1050.00,0,8.0,0.92,0.85,Comprehensive,Sedan,Suburban
+33,6.5,1350.75,1,4.5,0.75,0.72,Basic,SUV,Urban
+38,8.0,1250.00,0,6.0,0.88,0.78,Comprehensive,Sedan,Rural
+50,15.0,900.00,2,9.0,0.82,0.68,Third-Party,SUV,Suburban
+27,3.0,1650.25,0,1.5,0.70,0.88,Comprehensive,Sports,Urban
+65,30.0,600.00,0,15.0,1.00,0.92,Basic,Sedan,Rural
+40,9.0,1150.50,1,7.0,0.85,0.77,Comprehensive,SUV,Urban

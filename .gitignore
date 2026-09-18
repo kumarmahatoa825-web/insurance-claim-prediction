@@ -24,6 +24,9 @@ models/candidates/
 insureai.db
 data/insureai.db
 data/processed/
+backups/
+scratch*
+
 
 # Jupyter
 notebooks/.ipynb_checkpoints/

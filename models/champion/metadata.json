@@ -1,0 +1,378 @@
+{
+  "version": "v3.1-calibrated-20260914",
+  "model_name": "Random Forest",
+  "data_mode": "real",
+  "dataset": "Vehicle Insurance Claims (Real World)",
+  "dataset_path": "data/real/train.csv",
+  "dataset_hash": "c11cb2116cfdce32",
+  "dataset_rows": 58592,
+  "dataset_cols": 44,
+  "target_column": "is_claim",
+  "claim_rate": 0.06396777717094485,
+  "imbalance_ratio": 14.632870864461045,
+  "class_distribution": {
+    "no_claim": 54844,
+    "claim": 3748
+  },
+  "train_size": 46873,
+  "test_size": 11719,
+  "feature_names": [
+    "policy_tenure",
+    "age_of_car",
+    "age_of_policyholder",
+    "population_density",
+    "make",
+    "airbags",
+    "displacement",
+    "cylinder",
+    "gear_box",
+    "turning_radius",
+    "length",
+    "width",
+    "height",
+    "gross_weight",
+    "ncap_rating",
+    "torque_value",
+    "torque_rpm",
+    "power_value",
+    "power_rpm",
+    "safety_score",
+    "age_tenure_ratio",
+    "car_size",
+    "power_to_weight",
+    "torque_to_weight",
+    "is_esc",
+    "is_adjustable_steering",
+    "is_tpms",
+    "is_parking_sensors",
+    "is_parking_camera",
+    "is_front_fog_lights",
+    "is_rear_window_wiper",
+    "is_rear_window_washer",
+    "is_rear_window_defogger",
+    "is_brake_assist",
+    "is_power_door_locks",
+    "is_central_locking",
+    "is_power_steering",
+    "is_driver_seat_height_adjustable",
+    "is_day_night_rear_view_mirror",
+    "is_ecw",
+    "is_speed_alert",
+    "area_cluster_C10",
+    "area_cluster_C11",
+    "area_cluster_C12",
+    "area_cluster_C13",
+    "area_cluster_C14",
+    "area_cluster_C15",
+    "area_cluster_C16",
+    "area_cluster_C17",
+    "area_cluster_C18",
+    "area_cluster_C19",
+    "area_cluster_C2",
+    "area_cluster_C20",
+    "area_cluster_C21",
+    "area_cluster_C22",
+    "area_cluster_C3",
+    "area_cluster_C4",
+    "area_cluster_C5",
+    "area_cluster_C6",
+    "area_cluster_C7",
+    "area_cluster_C8",
+    "area_cluster_C9",
+    "segment_B1",
+    "segment_B2",
+    "segment_C1",
+    "segment_C2",
+    "segment_Utility",
+    "fuel_type_Diesel",
+    "fuel_type_Petrol",
+    "rear_brakes_type_Drum",
+    "transmission_type_Manual",
+    "steering_type_Manual",
+    "steering_type_Power",
+    "engine_type_1.2 L K Series Engine",
+    "engine_type_1.2 L K12N Dualjet",
+    "engine_type_1.5 L U2 CRDi",
+    "engine_type_1.5 Turbocharged Revotorq",
+    "engine_type_1.5 Turbocharged Revotron",
+    "engine_type_F8D Petrol Engine",
+    "engine_type_G12B",
+    "engine_type_K Series Dual jet",
+    "engine_type_K10C",
+    "engine_type_i-DTEC",
+    "model"
+  ],
+  "feature_count": 84,
+  "cv_strategy": "StratifiedKFold(n_splits=5, shuffle=True)",
+  "cv_random_seed": 42,
+  "preprocessing": "fold-safe (fit only on training fold)",
+  "smote": "SMOTE(k_neighbors=3) \u2014 applied to base classifier training only",
+  "smote_applied": true,
+  "calibration_method": "Platt Scaling (CalibratedClassifierCV, method='sigmoid', cv='prefit')",
+  "calibration_note": "Probabilities genuinely calibrated via CalibratedClassifierCV(method='sigmoid', cv='prefit') on the un-SMOTE'd training distribution, restoring empirical claim prevalence (6.40%) and minimizing Brier score loss (< 0.060).",
+  "optimal_threshold": 0.08,
+  "default_threshold": 0.08,
+  "threshold_selection_objective": "maximize_f1_on_calibrated_oof",
+  "cost_optimal_threshold": 0.11,
+  "selection_metric": "f1",
+  "model_selection_rationale": "Random Forest selected as champion by highest mean OOF F1 (0.1633) across 5 stratified folds. Calibrated Brier score verified on locked internal test set.",
+  "cv_metrics": {
+    "mean": {
+      "accuracy": 0.7291404139108172,
+      "precision": 0.1018164043564747,
+      "recall": 0.4129354479688369,
+      "f1": 0.16329133001531426,
+      "roc_auc": 0.6384999518983048,
+      "pr_auc": 0.09747686611807722,
+      "brier_score": 0.0595858942838523,
+      "mean_prob": 0.06420015481537246
+    },
+    "std": {
+      "accuracy": 0.011881619422748338,
+      "precision": 0.005228685325509908,
+      "recall": 0.020730537490108763,
+      "f1": 0.007663488815448471,
+      "roc_auc": 0.012886907357087881,
+      "pr_auc": 0.006680547290304304,
+      "brier_score": 0.00036987866202743377,
+      "mean_prob": 0.000719131691050708
+    },
+    "fold_metrics": [
+      {
+        "fold": 1,
+        "accuracy": 0.73472,
+        "precision": 0.0983397190293742,
+        "recall": 0.385,
+        "f1": 0.15666327568667346,
+        "roc_auc": 0.6259603038936372,
+        "pr_auc": 0.08940541103076477,
+        "brier_score": 0.060016221829790606,
+        "mean_prob": 0.06305610426867811,
+        "time_s": 2.12
+      },
+      {
+        "fold": 2,
+        "accuracy": 0.7096533333333334,
+        "precision": 0.09992458521870287,
+        "recall": 0.44166666666666665,
+        "f1": 0.16297662976629768,
+        "roc_auc": 0.6359889838556506,
+        "pr_auc": 0.09747560739241234,
+        "brier_score": 0.05972595484341209,
+        "mean_prob": 0.06523355283184135,
+        "time_s": 2.14
+      },
+      {
+        "fold": 3,
+        "accuracy": 0.7444266666666667,
+        "precision": 0.11192739844425238,
+        "recall": 0.43166666666666664,
+        "f1": 0.17776252573781742,
+        "roc_auc": 0.6611791073124408,
+        "pr_auc": 0.104220890797277,
+        "brier_score": 0.059055035470506625,
+        "mean_prob": 0.06393068442717288,
+        "time_s": 2.19
+      },
+      {
+        "fold": 4,
+        "accuracy": 0.7339449541284404,
+        "precision": 0.10138830458561211,
+        "recall": 0.4023372287145242,
+        "f1": 0.16196236559139784,
+        "roc_auc": 0.642539750486328,
+        "pr_auc": 0.10561234163677993,
+        "brier_score": 0.05925255348769232,
+        "mean_prob": 0.06421115228481962,
+        "time_s": 2.19
+      },
+      {
+        "fold": 5,
+        "accuracy": 0.7229571154256454,
+        "precision": 0.09750201450443191,
+        "recall": 0.4040066777963272,
+        "f1": 0.15709185329438494,
+        "roc_auc": 0.6268316139434671,
+        "pr_auc": 0.09067007973315212,
+        "brier_score": 0.059879705787859866,
+        "mean_prob": 0.06456928026435033,
+        "time_s": 2.14
+      }
+    ],
+    "note": "These are CV metrics from calibrated OOF evaluation on training data."
+  },
+  "test_metrics": {
+    "threshold": 0.08,
+    "accuracy": 0.6565406604659101,
+    "precision": 0.0971709717097171,
+    "recall": 0.5266666666666666,
+    "f1": 0.1640706126687435,
+    "roc_auc": 0.6442981736408666,
+    "pr_auc": 0.10295779628293676,
+    "brier_score": 0.0593676340621958,
+    "mean_probability": 0.06396639339063799
+  },
+  "test_metrics_default_threshold": {
+    "threshold": 0.5,
+    "accuracy": 0.9360013653042069,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0,
+    "roc_auc": 0.6442981736408666,
+    "pr_auc": 0.10295779628293676,
+    "brier_score": 0.0593676340621958,
+    "mean_probability": 0.06396639339063799
+  },
+  "confusion_matrix": [
+    [
+      7299,
+      3670
+    ],
+    [
+      355,
+      395
+    ]
+  ],
+  "brier_score": 0.0593676340621958,
+  "feature_importance": [
+    {
+      "feature": "age_of_car",
+      "importance": 0.2600613310102448
+    },
+    {
+      "feature": "policy_tenure",
+      "importance": 0.1902727979082501
+    },
+    {
+      "feature": "age_tenure_ratio",
+      "importance": 0.14016613967260577
+    },
+    {
+      "feature": "age_of_policyholder",
+      "importance": 0.09108654265836193
+    },
+    {
+      "feature": "population_density",
+      "importance": 0.03896924662200111
+    },
+    {
+      "feature": "area_cluster_C8",
+      "importance": 0.020499856132842498
+    },
+    {
+      "feature": "area_cluster_C13",
+      "importance": 0.012919127193396484
+    },
+    {
+      "feature": "area_cluster_C3",
+      "importance": 0.010798831445346312
+    },
+    {
+      "feature": "area_cluster_C7",
+      "importance": 0.010740551840384102
+    },
+    {
+      "feature": "area_cluster_C15",
+      "importance": 0.01036896044664151
+    },
+    {
+      "feature": "area_cluster_C2",
+      "importance": 0.010244213474109526
+    },
+    {
+      "feature": "area_cluster_C9",
+      "importance": 0.008693223870587123
+    },
+    {
+      "feature": "area_cluster_C11",
+      "importance": 0.008513418119591004
+    },
+    {
+      "feature": "height",
+      "importance": 0.008287577614342774
+    },
+    {
+      "feature": "area_cluster_C17",
+      "importance": 0.007907541978322288
+    },
+    {
+      "feature": "area_cluster_C12",
+      "importance": 0.007790651474397352
+    },
+    {
+      "feature": "area_cluster_C6",
+      "importance": 0.007778119353892403
+    },
+    {
+      "feature": "torque_to_weight",
+      "importance": 0.007751597669614388
+    },
+    {
+      "feature": "length",
+      "importance": 0.007432777589635439
+    },
+    {
+      "feature": "model",
+      "importance": 0.00728140722462248
+    },
+    {
+      "feature": "power_to_weight",
+      "importance": 0.007056748311246182
+    },
+    {
+      "feature": "area_cluster_C14",
+      "importance": 0.007012821059143179
+    },
+    {
+      "feature": "torque_value",
+      "importance": 0.0069669801729608065
+    },
+    {
+      "feature": "car_size",
+      "importance": 0.006640594123465475
+    },
+    {
+      "feature": "displacement",
+      "importance": 0.006450822762255839
+    },
+    {
+      "feature": "area_cluster_C5",
+      "importance": 0.006380008046853568
+    },
+    {
+      "feature": "power_value",
+      "importance": 0.006300064226405667
+    },
+    {
+      "feature": "area_cluster_C18",
+      "importance": 0.006052031610892912
+    },
+    {
+      "feature": "area_cluster_C19",
+      "importance": 0.005977353687519406
+    },
+    {
+      "feature": "area_cluster_C10",
+      "importance": 0.005400157442607813
+    }
+  ],
+  "responsible_ai": {
+    "risk_score_formula": "risk_score = round(claim_probability * 100)",
+    "risk_score_scale": "Project-defined 0-100 scale. Not an official insurance rating.",
+    "thresholds": {
+      "Low": "claim_probability < 0.25",
+      "Moderate": "0.25 <= claim_probability < 0.50",
+      "High": "0.50 <= claim_probability < 0.75",
+      "Critical": "claim_probability >= 0.75"
+    },
+    "disclaimer": "This model is for educational/demonstration purposes. Predictions are probabilistic estimates and should not be used as the sole basis for real insurance decisions.",
+    "shap_note": "SHAP values indicate feature attribution, not causation.",
+    "class_imbalance_note": "Dataset has a 6.4% claim rate (14.6:1 imbalance). Standard accuracy is misleading; evaluate with PR-AUC and F1."
+  },
+  "random_seed": 42,
+  "python_version": "3.10.0 (tags/v3.10.0:b494f59, Oct  4 2021, 19:00:18) [MSC v.1929 64 bit (AMD64)]",
+  "training_date": "2026-09-14T23:45:21.653947",
+  "model_file_hash": "b8c995575e56250b",
+  "model_status": "champion",
+  "note": "data/real/test.csv has no labels and is used for batch demos only. Internal locked test set is 20% stratified holdout from train.csv. Threshold was tuned on calibrated OOF probabilities \u2014 NOT on the locked test set."
+}

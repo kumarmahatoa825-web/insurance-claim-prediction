@@ -1,0 +1,3 @@
+policy_id,claim_probability,non_claim_probability,risk_score,risk_category,prediction,model_version
+row_1,0.0494,0.9506,5,Low,Unlikely to Claim,v4.1.0-20260918-6640e9b
+row_2,0.0494,0.9506,5,Low,Unlikely to Claim,v4.1.0-20260918-6640e9b
