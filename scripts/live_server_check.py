@@ -157,7 +157,9 @@ def run_live_checks():
     print("\n[11/12] Testing Unseen Test Set Batch Demo (/batch-predict-real-test)...")
     status, batch_res = http_post(f"{BACKEND_URL}/batch-predict-real-test", {})
     assert status == 200
-    print(f"  --> [PASS] Batch Predict Real Test HTTP 200 OK | Sample Inferences Executed: {len(batch_res.get('sample_predictions', []))} | Avg Batch Prob: {batch_res.get('avg_probability')}")
+    sample_count = len(batch_res.get('predictions', []))
+    avg_prob = batch_res.get('avg_claim_probability')
+    print(f"  --> [PASS] Batch Predict Real Test HTTP 200 OK | Sample Inferences Executed: {sample_count} | Avg Batch Prob: {avg_prob}")
 
     # 12. Security & Target Leakage Guardrails
     print("\n[12/12] Testing Guardrails (Target Leakage & Client Threshold Override)...")

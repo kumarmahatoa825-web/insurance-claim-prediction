@@ -16,16 +16,22 @@ build/
 *.env.local
 
 # ML Models & Data
+# Globally ignore large/temporary model artifacts...
 models/*.joblib
 models/champion/*.joblib
 models/candidates/
-*.joblib
 *.db
 insureai.db
 data/insureai.db
 data/processed/
 backups/
 scratch*
+
+# ...BUT explicitly track champion release models in git so clean-clone is reproducible.
+# Without this exception, a fresh clone cannot run without retraining (not reproducible).
+# The *.joblib global rule above is overridden for release directories only.
+!models/releases/**
+!models/releases/**/*.joblib
 
 
 # Jupyter
@@ -51,3 +57,7 @@ Thumbs.db
 reports/*.html
 reports/*.json
 reports/*.pdf
+reports/batch_*.csv
+
+# Runtime logs (generated at server start)
+logs/

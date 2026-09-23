@@ -8,7 +8,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, select, func, delete, text
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./insureai.db")
+from backend.core.settings import settings
+
+# Use centralized settings — do NOT read os.getenv() directly here.
+# This ensures the database URL is controlled by one source of truth.
+DATABASE_URL = settings.DATABASE_URL
 # Ensure aiosqlite dialect for SQLite
 if DATABASE_URL.startswith("sqlite:///") and not DATABASE_URL.startswith("sqlite+aiosqlite"):
     DATABASE_URL = DATABASE_URL.replace("sqlite:///", "sqlite+aiosqlite:///")

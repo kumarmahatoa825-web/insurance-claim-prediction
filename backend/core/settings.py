@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     MONITORING_WINDOW_SIZE: int = 500
     SMOTE_K_NEIGHBORS: int = 3
 
+    # Security — Registry API Key (override in .env for production)
+    API_KEY: str = "insureai-dev-key-change-in-production"
+
+    # Champion metadata path shortcut (for routes.py convenience)
+    CHAMPION_METADATA_PATH: str = ""
+
     model_config = {
         "env_file": ".env",
         "extra": "allow"

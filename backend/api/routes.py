@@ -15,6 +15,7 @@ import os
 import io
 import json
 import csv
+import uuid
 import logging
 import pandas as pd
 from datetime import datetime, timezone
@@ -35,6 +36,7 @@ from backend.ml.eda import DataQualityAnalyzer
 from backend.ml.fairness import FairnessAnalyzer
 from backend.ml.monitoring import ModelMonitor
 from backend.ml.registry import ModelRegistry
+from backend.api.auth import require_api_key
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -55,7 +57,7 @@ class PredictRequest(BaseModel):
     Server strictly controls decision threshold; client threshold overrides are rejected with 422.
     Target leakage fields (e.g. is_claim) are strictly forbidden with 422.
     """
-    model_config = {"extra": "allow"}
+    model_config = {"extra": "forbid"}
 
     # Control fields
     threshold: Optional[float] = Field(default=None, description="Forbidden: threshold overrides are rejected. Server uses active model threshold.")
@@ -244,6 +246,7 @@ async def health_ready(request: Request):
 
     # Verify release checksums if candidate/release exists
     version = meta.get("version")
+    checksums_ok = False
     if version:
         try:
             registry = ModelRegistry()
@@ -253,10 +256,17 @@ async def health_ready(request: Request):
                     status_code=503,
                     detail=f"Service not ready: release verification failed for {version}: {reason}",
                 )
+            checksums_ok = True
         except HTTPException:
             raise
         except Exception as ve:
-            logger.warning("Release verification check skipped or failed: %s", ve)
+            # Any unexpected error during verification = service not ready
+            raise HTTPException(
+                status_code=503,
+                detail=f"Service not ready: release verification error: {ve}",
+            )
+    else:
+        checksums_ok = False
 
     return {
         "status": "ready",
@@ -264,7 +274,7 @@ async def health_ready(request: Request):
         "model_version": meta.get("version", "unknown"),
         "model_name": meta.get("model_name", "unknown"),
         "schema_version": schema_version_str,
-        "checksums_verified": True,
+        "checksums_verified": checksums_ok,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -303,11 +313,9 @@ async def predict_single(req: PredictRequest, request: Request, db: AsyncSession
     meta = getattr(request.app.state, "metadata", None) or {}
     data_mode = meta.get("data_mode", "real")
 
-    # Extract non-None input values
+    # Extract non-None input values (extra=forbid ensures only declared fields are present)
     raw_dict = req.model_dump(exclude={"threshold", "store_prediction", "policy_id"})
     input_dict = {k: v for k, v in raw_dict.items() if v is not None}
-    if hasattr(req, "model_extra") and req.model_extra:
-        input_dict.update({k: v for k, v in req.model_extra.items() if v is not None})
 
     # Validate inputs (Requirement 176)
     is_valid, errors, warnings = DataValidator.validate_prediction_input(input_dict, data_mode=data_mode)
@@ -422,9 +430,10 @@ async def batch_predict(request: Request, file: UploadFile = File(...)):
         cat = p.get("risk_category", "Unknown")
         risk_dist[cat] = risk_dist.get(cat, 0) + 1
 
-    # Save output CSV to reports directory
+    # Save output CSV to per-request isolated file (prevents cross-user data overwrite)
     os.makedirs(settings.REPORTS_DIR, exist_ok=True)
-    report_path = os.path.join(settings.REPORTS_DIR, "batch_result.csv")
+    batch_id = str(uuid.uuid4())[:12]
+    report_path = os.path.join(settings.REPORTS_DIR, f"batch_{batch_id}.csv")
     fieldnames = [
         "policy_id", "claim_probability", "non_claim_probability",
         "risk_score", "risk_category", "prediction", "model_version"
@@ -444,23 +453,27 @@ async def batch_predict(request: Request, file: UploadFile = File(...)):
         "failed_rows_count": len(failed_df),
         "risk_distribution": risk_dist,
         "predictions": predictions[:100],  # Return first 100 for display
-        "download_path": report_path,
+        "batch_id": batch_id,
+        "download_url": f"/batch-predict/download/{batch_id}",
         "validation_summary": val_summary,
         "data_mode": data_mode,
     })
 
 
-@router.get("/batch-predict/download", tags=["Prediction"])
-async def download_batch_result():
-    path = os.path.join(settings.REPORTS_DIR, "batch_result.csv")
+@router.get("/batch-predict/download/{batch_id}", tags=["Prediction"])
+async def download_batch_result(batch_id: str):
+    """Download batch prediction CSV by batch_id returned from /batch-predict."""
+    # Sanitize batch_id to prevent path traversal
+    safe_id = "".join(c for c in batch_id if c.isalnum() or c == "-")
+    path = os.path.join(settings.REPORTS_DIR, f"batch_{safe_id}.csv")
     if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="No batch predictions available. Run a batch prediction first.")
+        raise HTTPException(status_code=404, detail=f"Batch result not found for batch_id={batch_id}. Run /batch-predict first.")
     with open(path, "r", encoding="utf-8") as f:
         content = f.read()
     return StreamingResponse(
         io.StringIO(content),
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=batch_prediction_results.csv"},
+        headers={"Content-Disposition": f"attachment; filename=batch_{safe_id}.csv"},
     )
 
 
@@ -629,8 +642,10 @@ async def get_analytics(request: Request):
         "claims_by_age_group": claims_by_age,
         "claims_by_policy_type": claims_by_type,
         "claims_by_location": claims_by_location,
-        "claims_by_occupation": claims_by_occ,
-        "claims_by_income_range": claims_by_income,
+        # Corrected semantic names: these keys now accurately name their actual data source.
+        # Real-data mode: claims_by_segment comes from vehicle segment column; claims_by_population_density from population_density buckets.
+        "claims_by_segment": claims_by_occ,
+        "claims_by_population_density": claims_by_income,
         "probability_histogram": hist_data,
         "feature_importance": feat_imp,
     })
@@ -716,8 +731,8 @@ async def get_registry(request: Request):
 
 
 @router.post("/registry/approve/{candidate_version}", tags=["Registry"])
-async def approve_candidate(candidate_version: str, request: Request):
-    """Explicitly approve a candidate model for promotion (governance gate)."""
+async def approve_candidate(candidate_version: str, request: Request, _key: str = Depends(require_api_key)):
+    """Explicitly approve a candidate model for promotion (governance gate). Requires X-API-Key header."""
     reg = getattr(request.app.state, "registry", None) or ModelRegistry(settings.MODELS_DIR)
     try:
         reg.approve_candidate(candidate_version)
@@ -728,8 +743,8 @@ async def approve_candidate(candidate_version: str, request: Request):
 
 
 @router.post("/registry/promote/{candidate_version}", tags=["Registry"])
-async def promote_candidate(candidate_version: str, request: Request):
-    """Promote an approved candidate model to champion."""
+async def promote_candidate(candidate_version: str, request: Request, _key: str = Depends(require_api_key)):
+    """Promote an approved candidate model to champion. Requires X-API-Key header."""
     reg = getattr(request.app.state, "registry", None) or ModelRegistry(settings.MODELS_DIR)
     try:
         champion = reg.promote_candidate(candidate_version)
@@ -755,8 +770,8 @@ async def promote_candidate(candidate_version: str, request: Request):
 
 
 @router.post("/registry/rollback", tags=["Registry"])
-async def rollback_champion(request: Request):
-    """Roll back to the previous champion model."""
+async def rollback_champion(request: Request, _key: str = Depends(require_api_key)):
+    """Roll back to the previous champion model. Requires X-API-Key header."""
     reg = getattr(request.app.state, "registry", None) or ModelRegistry(settings.MODELS_DIR)
     try:
         restored = reg.rollback()

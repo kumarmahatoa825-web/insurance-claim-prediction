@@ -1,6 +1,8 @@
 # InsureAI — Intelligent Insurance Claim Prediction & Risk Analysis System
 
-> **Production-grade AI/ML system** trained on a **real-world vehicle insurance dataset** (58,592 labeled records, 39,063 official unseen test records) featuring nested cross-fitted probability calibration, Out-of-Fold (OOF) decision threshold optimization, SHAP tree explainability, immutable Model Registry with human-in-the-loop approval gates, and multi-feature Population Stability Index (PSI) drift monitoring.
+> **Academic/Portfolio AI/ML System** trained on a **real-world vehicle insurance dataset** (58,592 labeled records, 39,063 official unseen test records) featuring nested cross-fitted probability calibration, Out-of-Fold (OOF) decision threshold optimization, SHAP tree explainability, immutable Model Registry with human-in-the-loop approval gates, and multi-feature Population Stability Index (PSI) drift monitoring.
+>
+> **⚠️ Scope**: This is an educational portfolio project demonstrating production ML engineering concepts. It is not deployed as a production insurance system. Predictions are probabilistic estimates only and must not be used as the sole basis for real insurance decisions. See [Known Limitations](#known-limitations) below.
 
 ---
 
@@ -205,3 +207,29 @@ Verify active Champion:
 ```powershell
 python -c "from backend.ml.registry import ModelRegistry; r=ModelRegistry(); print(r.get_champion_version())"
 ```
+
+---
+
+## Known Limitations
+
+This is an **academic/portfolio project**. The following are intentional scope boundaries rather than defects:
+
+| Area | Current State | What Real Production Would Need |
+|------|--------------|--------------------------------|
+| **Authentication** | Static API key for registry mutations | OAuth2 / JWT with user database and RBAC |
+| **Database** | SQLite (sufficient for demo) | PostgreSQL with Alembic migrations |
+| **Batch processing** | Synchronous in-request | Celery/Redis async job queue |
+| **Model performance** | ROC-AUC 0.651 (insurance is inherently hard to predict) | Proprietary insurer data, telematics, claims history |
+| **Frontend** | Vite dev server (`npm run dev`) | Production nginx with minified static build |
+| **Fairness** | Diagnostic only — fairness groups use vehicle attributes (no protected demographics in dataset) | Requires actual demographic data + legal/compliance review |
+| **Monitoring** | PSI drift detection against training baseline | Production outcome feedback loop with real claim labels |
+| **Security** | CORS, input validation, API key | WAF, TLS termination, secret management (Vault) |
+
+**What this project correctly demonstrates:**
+- Real-dataset ML pipeline with proper train/holdout/unseen-test split discipline
+- Nested cross-validated calibration and OOF threshold optimization
+- SHAP TreeExplainer integration for per-prediction explanations
+- Model Registry with immutable versioned releases and promotion gates
+- Schema-validated prediction API with target leakage protection
+- Multi-dimensional drift monitoring (PSI on 11 features)
+- Release gate verification with end-to-end inference smoke test

@@ -153,6 +153,9 @@ def test_registry_promotion_security(tmp_path):
     m1 = tmp_path / "m1.joblib"
     m1.write_text("dummy model 1")
 
+    # Fairness metadata required by fail-closed gate
+    fairness_meta = {"gate_passed": True, "demographic_parity_disparity": 0.05, "eo_disparity": 0.04}
+
     # 1. Register candidate v1
     reg.register_candidate(
         model_name="Gradient Boosting",
@@ -163,6 +166,7 @@ def test_registry_promotion_security(tmp_path):
             "data_mode": "real",
             "feature_count": 84,
             "test_metrics": {"f1": 0.165, "roc_auc": 0.640, "pr_auc": 0.100, "brier_score": 0.059},
+            "fairness": fairness_meta,
         },
     )
 
@@ -187,6 +191,7 @@ def test_registry_promotion_security(tmp_path):
             "data_mode": "real",
             "feature_count": 84,
             "test_metrics": {"f1": 0.170, "roc_auc": 0.650, "pr_auc": 0.105, "brier_score": 0.058},
+            "fairness": fairness_meta,
         },
     )
     reg.approve_candidate("v2.0")

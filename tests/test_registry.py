@@ -78,12 +78,17 @@ def test_approve_promote_and_atomic_pointer(temp_registry, tmp_path):
     m1 = tmp_path / "m1.joblib"
     m1.write_text("model 1")
 
+    # Fairness metadata is required (fail-closed gate) — include it in all test candidates
+    fairness_meta = {"gate_passed": True, "demographic_parity_disparity": 0.05, "eo_disparity": 0.04}
+
     # Initial champion via register_candidate -> approve -> promote
     temp_registry.register_candidate(
         model_name="Model A",
         version="v1.0",
         model_obj_or_path=str(m1),
-        metadata={"default_threshold": 0.08, "data_mode": "real", "feature_count": 86, "test_metrics": {"f1": 0.15, "roc_auc": 0.60, "pr_auc": 0.09, "brier_score": 0.06}},
+        metadata={"default_threshold": 0.08, "data_mode": "real", "feature_count": 86,
+                  "test_metrics": {"f1": 0.15, "roc_auc": 0.60, "pr_auc": 0.09, "brier_score": 0.06},
+                  "fairness": fairness_meta},
     )
     temp_registry.approve_candidate("v1.0")
     c1 = temp_registry.promote_candidate("v1.0")
@@ -99,7 +104,9 @@ def test_approve_promote_and_atomic_pointer(temp_registry, tmp_path):
         model_name="Model B",
         version="v2.0",
         model_obj_or_path=str(m2),
-        metadata={"default_threshold": 0.08, "data_mode": "real", "feature_count": 86, "test_metrics": {"f1": 0.18, "roc_auc": 0.65, "pr_auc": 0.10, "brier_score": 0.055}},
+        metadata={"default_threshold": 0.08, "data_mode": "real", "feature_count": 86,
+                  "test_metrics": {"f1": 0.18, "roc_auc": 0.65, "pr_auc": 0.10, "brier_score": 0.055},
+                  "fairness": fairness_meta},
     )
 
     temp_registry.approve_candidate("v2.0")

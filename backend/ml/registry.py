@@ -363,7 +363,9 @@ class ModelRegistry:
             schema_ok = (data_mode == "real" and feature_count >= 80)
 
         fairness_meta = meta_dict.get("fairness", {})
-        fairness_ok = fairness_meta.get("gate_passed", True) if fairness_meta else True
+        # FAIL-CLOSED: missing or empty fairness metadata is a hard rejection.
+        # A model with no fairness assessment cannot be promoted to champion.
+        fairness_ok = bool(fairness_meta.get("gate_passed") is True) if fairness_meta else False
 
         checks = {
             "artifact_integrity": bool(artifact_ok),
@@ -371,6 +373,7 @@ class ModelRegistry:
             "calibration_valid": bool(brier <= MANDATORY_PROMOTION_REQUIREMENTS["max_brier"]),
             "pr_auc_valid": bool(cv_pr >= MANDATORY_PROMOTION_REQUIREMENTS["min_pr_auc"]),
             "roc_auc_valid": bool(cv_roc >= MANDATORY_PROMOTION_REQUIREMENTS["min_roc_auc"]),
+            "f1_valid": bool(cv_f1 >= MANDATORY_PROMOTION_REQUIREMENTS["min_f1"]),
             "fairness_check": bool(fairness_ok),
         }
 
