@@ -6,7 +6,19 @@ Implements Section T (requirements 308-329):
   - Population Stability Index (PSI) calculation for prediction & feature drift
   - Real missingness drift detection from production inputs
   - No synthetic fallbacks: explicit 'Baseline unavailable' status if missing
-  - Multi-level health status: HEALTHY (PSI < 0.1), WARNING (0.1 <= PSI < 0.25), CRITICAL (PSI >= 0.25)
+  - Multi-level health status:
+      HEALTHY           PSI < 0.10
+      WARNING           0.10 <= PSI < 0.25
+      CRITICAL          PSI >= 0.25
+      INSUFFICIENT_DATA sample_size < MIN_SAMPLE_REQUIRED  [Issue 17]
+      UNKNOWN           calculation failure                [Issue 18]
+
+Issue 17 fix: "Awaiting production volume" status previously returned overall_status="Healthy"
+  which is wrong. Now returns "INSUFFICIENT_DATA" until MIN_SAMPLE_REQUIRED (500) predictions
+  are available.
+
+Issue 18 fix: PSI calculation failures previously returned 0.0 (indistinguishable from "no drift").
+  Now returns PSIResult(None, "unknown", reason) — callers can distinguish failure from zero.
 """
 
 import os
@@ -16,6 +28,9 @@ import pandas as pd
 from typing import Dict, List, Any, Optional
 from backend.core.settings import settings
 
+# Minimum sample size to call a drift result statistically meaningful.
+# Below this threshold status is INSUFFICIENT_DATA, never HEALTHY.
+MIN_SAMPLE_REQUIRED: int = 500
 
 _CACHED_BASELINE_PROBS: Optional[np.ndarray] = None
 _CACHED_DRIFT_BASELINE: Optional[dict] = None
@@ -65,22 +80,83 @@ def get_drift_baseline() -> Optional[dict]:
     return None
 
 
-def calculate_psi(baseline: np.ndarray, current: np.ndarray, num_buckets: int = 10) -> float:
+class PSIResult:
     """
-    Calculate Population Stability Index (PSI) between baseline and current distributions.
-      PSI < 0.10: No significant change (Healthy / Nominal)
-      0.10 <= PSI < 0.25: Moderate change (Warning / Monitor)
-      PSI >= 0.25: Significant change (Critical / Retrain Required)
+    Typed container for PSI calculation result (Issue 18).
+
+    value  — float if calculation succeeded; None if failed or invalid.
+    status — 'ok' | 'insufficient_data' | 'unknown'
+    reason — human-readable explanation when value is None.
+
+    A returned value of 0.0 always means genuinely computed PSI = 0.
+    It never signals a calculation failure.
     """
-    if len(baseline) == 0 or len(current) == 0:
-        return 0.0
+
+    __slots__ = ("value", "status", "reason")
+
+    def __init__(self, value: Optional[float], status: str, reason: str = ""):
+        self.value = value
+        self.status = status
+        self.reason = reason
+
+    def to_dict(self) -> dict:
+        return {
+            "metric": "psi",
+            "value": self.value,
+            "status": self.status,
+            "reason": self.reason,
+        }
+
+
+def calculate_psi(
+    baseline: np.ndarray,
+    current: np.ndarray,
+    num_buckets: int = 10,
+) -> PSIResult:
+    """
+    Calculate Population Stability Index (PSI).
+
+    All failure modes return PSIResult(None, "unknown" | "insufficient_data", reason).
+    A successful PSI of exactly 0.0 is returned as PSIResult(0.0, "ok").
+
+    PSI thresholds:
+      < 0.10  → Nominal
+      0.10-0.25 → Moderate
+      >= 0.25 → Critical
+    """
+    # --- Input guards ---
+    if baseline is None or len(baseline) == 0:
+        return PSIResult(None, "unknown", "baseline array is empty")
+    if current is None or len(current) == 0:
+        return PSIResult(None, "unknown", "current array is empty")
+
+    if not np.all(np.isfinite(baseline)):
+        return PSIResult(None, "unknown", "baseline contains NaN or infinite values")
+    if not np.all(np.isfinite(current)):
+        return PSIResult(None, "unknown", "current contains NaN or infinite values")
+
+    if len(baseline) < MIN_SAMPLE_REQUIRED:
+        return PSIResult(
+            None,
+            "insufficient_data",
+            f"baseline sample_size={len(baseline)} < required {MIN_SAMPLE_REQUIRED}",
+        )
+    if len(current) < MIN_SAMPLE_REQUIRED:
+        return PSIResult(
+            None,
+            "insufficient_data",
+            f"current sample_size={len(current)} < required {MIN_SAMPLE_REQUIRED}",
+        )
+
+    if np.ptp(baseline) == 0:
+        return PSIResult(None, "unknown", "baseline is constant — cannot compute meaningful bins")
 
     try:
         quantiles = np.linspace(0, 1, num_buckets + 1)
         bins = np.percentile(baseline, quantiles * 100)
         bins = np.unique(bins)
         if len(bins) < 2:
-            return 0.0
+            return PSIResult(None, "unknown", "fewer than 2 unique bin edges after deduplication")
 
         bins[0] = -np.inf
         bins[-1] = np.inf
@@ -96,10 +172,16 @@ def calculate_psi(baseline: np.ndarray, current: np.ndarray, num_buckets: int = 
         base_pct = np.where(base_pct == 0, eps, base_pct)
         curr_pct = np.where(curr_pct == 0, eps, curr_pct)
 
-        psi = np.sum((curr_pct - base_pct) * np.log(curr_pct / base_pct))
-        return float(round(max(0.0, psi), 4))
-    except Exception:
-        return 0.0
+        psi_raw = np.sum((curr_pct - base_pct) * np.log(curr_pct / base_pct))
+
+        if not np.isfinite(psi_raw):
+            return PSIResult(None, "unknown", "PSI computation produced non-finite result")
+
+        psi_val = float(round(max(0.0, psi_raw), 4))
+        return PSIResult(psi_val, "ok")
+
+    except Exception as exc:
+        return PSIResult(None, "unknown", f"PSI calculation error: {exc}")
 
 
 class ModelMonitor:
@@ -111,7 +193,6 @@ class ModelMonitor:
     def get_monitoring_report(self, history_records: Optional[List[dict]] = None) -> dict:
         meta = self.metadata
 
-        # Extract verified metrics strictly from metadata
         test_m = meta.get("test_metrics", {})
         cv_m = meta.get("cv_metrics", {}).get("mean", {})
 
@@ -120,26 +201,41 @@ class ModelMonitor:
         f1 = test_m.get("f1") or cv_m.get("f1") or meta.get("f1")
         brier = test_m.get("brier_score") or meta.get("brier_score")
 
-        # Drift Analysis
         drift_metrics = self._compute_drift(history_records)
 
-        # Determine overall system health
-        psi_val = drift_metrics.get("prediction_drift_psi")
-        if drift_metrics.get("status") == "Baseline unavailable":
+        drift_status = drift_metrics.get("status")
+        # Strip internal key before exposing to API
+        psi_result: Optional[PSIResult] = drift_metrics.pop("_psi_result", None)
+        psi_val = psi_result.value if psi_result else drift_metrics.get("prediction_drift_psi")
+
+        # Issue 17: INSUFFICIENT_DATA must not be presented as Healthy
+        if drift_status == "Baseline unavailable":
             overall_status = "Warning"
             status_message = drift_metrics.get("message", "Baseline unavailable.")
-        elif drift_metrics.get("status") == "Awaiting production volume":
-            overall_status = "Healthy"
-            status_message = drift_metrics.get("message", "Model operational.")
+        elif drift_status == "INSUFFICIENT_DATA":
+            overall_status = "INSUFFICIENT_DATA"
+            status_message = drift_metrics.get(
+                "message",
+                f"Insufficient production volume for statistical drift calculation "
+                f"(required: {MIN_SAMPLE_REQUIRED}).",
+            )
         elif psi_val is not None and psi_val >= 0.25:
             overall_status = "Critical"
-            status_message = f"Significant prediction drift detected (PSI={psi_val:.3f}). Retraining recommended."
+            status_message = (
+                f"Significant prediction drift detected (PSI={psi_val:.3f}). "
+                "Retraining recommended."
+            )
         elif psi_val is not None and psi_val >= 0.10:
             overall_status = "Warning"
-            status_message = f"Moderate distribution shift detected (PSI={psi_val:.3f}). Continue monitoring."
+            status_message = (
+                f"Moderate distribution shift detected (PSI={psi_val:.3f}). "
+                "Continue monitoring."
+            )
         else:
             overall_status = "Healthy"
-            status_message = "All production monitoring indicators operating within nominal bounds."
+            status_message = (
+                "All production monitoring indicators operating within nominal bounds."
+            )
 
         active_thresh = meta.get("default_threshold")
         if active_thresh is None and isinstance(meta.get("threshold"), dict):
@@ -147,10 +243,10 @@ class ModelMonitor:
 
         return {
             "model_version": meta.get("version", "v4.0-real"),
-            "model_name": meta.get("model_name", "Random Forest"),
+            "model_name": meta.get("model_name", "Unknown"),
             "data_mode": meta.get("data_mode", "real"),
-            "dataset_rows": meta.get("dataset_rows", 58592),
-            "feature_count": meta.get("feature_count", 84),
+            "dataset_rows": meta.get("dataset_rows", 0),
+            "feature_count": meta.get("feature_count", 0),
             "active_threshold": round(float(active_thresh), 3) if active_thresh is not None else None,
             "training_date": meta.get("training_date", ""),
             "overall_status": overall_status,
@@ -171,8 +267,11 @@ class ModelMonitor:
                 "psi_warning_max": 0.25,
                 "min_acceptable_roc_auc": 0.58,
                 "max_acceptable_brier": 0.25,
+                "min_sample_required": MIN_SAMPLE_REQUIRED,
             },
-            "monitoring_notice": "Continuous evaluation metric tracking adheres to Section T specifications.",
+            "monitoring_notice": (
+                "Continuous evaluation metric tracking adheres to Section T specifications."
+            ),
         }
 
     def _compute_drift(self, history_records: Optional[List[dict]]) -> dict:
@@ -183,87 +282,118 @@ class ModelMonitor:
             return {
                 "status": "Baseline unavailable",
                 "production_volume": prod_count,
-                "min_volume_required": 10,
+                "min_volume_required": MIN_SAMPLE_REQUIRED,
                 "prediction_drift_psi": None,
                 "prediction_drift_level": "Unknown",
                 "missingness_drift": "Unknown",
                 "feature_distribution_shift": "Unknown",
                 "baseline_sample_size": 0,
-                "message": "Baseline out-of-fold predictions file (data/processed/oof_predictions.csv) not found. Retrain model to generate baseline.",
+                "message": (
+                    "Baseline out-of-fold predictions file "
+                    "(data/processed/oof_predictions.csv) not found. "
+                    "Retrain model to generate baseline."
+                ),
             }
 
-        if not history_records or prod_count < 10:
+        # Issue 17: min required = MIN_SAMPLE_REQUIRED (500), not 10
+        if not history_records or prod_count < MIN_SAMPLE_REQUIRED:
             return {
-                "status": "Awaiting production volume",
+                "status": "INSUFFICIENT_DATA",
                 "production_volume": prod_count,
-                "min_volume_required": 10,
+                "min_volume_required": MIN_SAMPLE_REQUIRED,
+                "required_sample_size": MIN_SAMPLE_REQUIRED,
                 "prediction_drift_psi": None,
-                "prediction_drift_level": "Awaiting production volume",
-                "missingness_drift": "Awaiting production volume",
-                "feature_distribution_shift": "Awaiting production volume",
+                "prediction_drift_level": "INSUFFICIENT_DATA",
+                "missingness_drift": "INSUFFICIENT_DATA",
+                "feature_distribution_shift": "INSUFFICIENT_DATA",
                 "baseline_sample_size": len(baseline_probs),
-                "message": f"Awaiting production volume ({prod_count}/10 predictions recorded; minimum 10 required for statistical drift calculation).",
+                "message": (
+                    f"Insufficient production volume for statistical drift calculation "
+                    f"({prod_count}/{MIN_SAMPLE_REQUIRED} predictions recorded; "
+                    f"minimum {MIN_SAMPLE_REQUIRED} required)."
+                ),
+                "_psi_result": PSIResult(
+                    None,
+                    "insufficient_data",
+                    f"production sample_size={prod_count} < required {MIN_SAMPLE_REQUIRED}",
+                ),
             }
 
-        # Genuine prediction drift PSI calculation
         current_probs = np.array([
             float(r.get("claim_probability", 0.0))
             for r in history_records
             if r.get("claim_probability") is not None
         ])
 
-        psi = calculate_psi(baseline_probs, current_probs)
-        pred_level = "Nominal" if psi < 0.10 else ("Moderate" if psi < 0.25 else "Critical")
+        # Issue 18: typed PSI result — never silent 0.0 on failure
+        psi_result = calculate_psi(baseline_probs, current_probs)
 
-        # Genuine missingness calculation across production records
-        total_fields_checked = 0
-        missing_fields_count = 0
+        if psi_result.status == "ok" and psi_result.value is not None:
+            psi_val: Optional[float] = psi_result.value
+            pred_level = (
+                "Nominal" if psi_val < 0.10 else ("Moderate" if psi_val < 0.25 else "Critical")
+            )
+        else:
+            psi_val = None
+            pred_level = "UNKNOWN"
+
+        # Missingness drift
         input_dicts = []
         for r in history_records:
             inp = r.get("input_data") or {}
             if isinstance(inp, dict) and inp:
                 input_dicts.append(inp)
-                for k, v in inp.items():
-                    if k in ["policy_id", "threshold", "store_prediction"]:
-                        continue
-                    total_fields_checked += 1
-                    if v is None or (isinstance(v, float) and math.isnan(v)) or v == "":
-                        missing_fields_count += 1
 
-        # Per-feature missingness comparison against baseline
         drift_baseline = get_drift_baseline() or {}
         base_missing_dict = drift_baseline.get("baseline_missingness", {})
 
         monitored_cols = [
             "policy_tenure", "age_of_car", "age_of_policyholder",
             "population_density", "displacement", "gross_weight",
-            "make", "segment", "fuel_type", "transmission_type", "area_cluster"
+            "make", "segment", "fuel_type", "transmission_type", "area_cluster",
         ]
 
         per_feature_missingness = {}
         if input_dicts:
             for col in monitored_cols:
-                n_present = sum(1 for inp in input_dicts if col in inp and inp[col] is not None and inp[col] != "" and not (isinstance(inp[col], float) and math.isnan(inp[col])))
+                n_present = sum(
+                    1 for inp in input_dicts
+                    if col in inp
+                    and inp[col] is not None
+                    and inp[col] != ""
+                    and not (isinstance(inp[col], float) and math.isnan(inp[col]))
+                )
                 curr_missing = round(1.0 - (n_present / len(input_dicts)), 4)
                 base_missing = round(float(base_missing_dict.get(col, 0.0)), 4)
                 delta = round(curr_missing - base_missing, 4)
-                status = "Healthy" if abs(delta) < 0.05 else ("Warning" if abs(delta) < 0.15 else "Critical")
+                feat_status = (
+                    "Healthy" if abs(delta) < 0.05 else ("Warning" if abs(delta) < 0.15 else "Critical")
+                )
                 per_feature_missingness[col] = {
                     "baseline": base_missing,
                     "current": curr_missing,
                     "delta": delta,
-                    "status": status,
+                    "status": feat_status,
                 }
 
-        baseline_missing_rate = np.mean([per_feature_missingness[c]["baseline"] for c in per_feature_missingness]) if per_feature_missingness else 0.0
-        current_missing_rate = np.mean([per_feature_missingness[c]["current"] for c in per_feature_missingness]) if per_feature_missingness else 0.0
+        if per_feature_missingness:
+            baseline_missing_rate = float(
+                np.mean([per_feature_missingness[c]["baseline"] for c in per_feature_missingness])
+            )
+            current_missing_rate = float(
+                np.mean([per_feature_missingness[c]["current"] for c in per_feature_missingness])
+            )
+        else:
+            baseline_missing_rate = 0.0
+            current_missing_rate = 0.0
+
         diff_pp = (current_missing_rate - baseline_missing_rate) * 100
         missingness_drift_str = f"{current_missing_rate * 100:.1f}% ({diff_pp:+.1f} pp)"
 
-        # Genuine feature distribution shift check against baseline quantile bins
+        # Feature distribution shift
         cont_features = drift_baseline.get("continuous_features", {})
-        feature_psis = {}
-        if cont_features and len(input_dicts) >= 10:
+        feature_psis: Dict[str, Any] = {}
+        if cont_features and len(input_dicts) >= MIN_SAMPLE_REQUIRED:
             for col_name, feat_meta in cont_features.items():
                 bins = feat_meta.get("bins")
                 base_dist = feat_meta.get("baseline_distribution")
@@ -272,29 +402,29 @@ class ModelMonitor:
                 curr_vals = [
                     float(inp[col_name])
                     for inp in input_dicts
-                    if col_name in inp and inp[col_name] is not None and not (isinstance(inp[col_name], float) and math.isnan(inp[col_name]))
+                    if col_name in inp
+                    and inp[col_name] is not None
+                    and not (isinstance(inp[col_name], float) and math.isnan(inp[col_name]))
                 ]
-                if len(curr_vals) >= 10:
+                if len(curr_vals) >= MIN_SAMPLE_REQUIRED:
                     try:
                         bins_arr = np.array(bins, dtype=float)
                         bins_arr[0] = -np.inf
                         bins_arr[-1] = np.inf
                         curr_counts, _ = np.histogram(curr_vals, bins=bins_arr)
                         curr_pct = curr_counts / len(curr_vals)
-
                         base_pct = np.array(base_dist, dtype=float)
                         eps = 1e-4
                         base_pct = np.where(base_pct == 0, eps, base_pct)
                         curr_pct = np.where(curr_pct == 0, eps, curr_pct)
-
                         f_psi = float(np.sum((curr_pct - base_pct) * np.log(curr_pct / base_pct)))
-                        feature_psis[col_name] = round(max(0.0, f_psi), 4)
+                        # Issue 18: None on failure, not 0.0
+                        feature_psis[col_name] = round(max(0.0, f_psi), 4) if np.isfinite(f_psi) else None
                     except Exception:
-                        pass
+                        feature_psis[col_name] = None
 
-        # Categorical feature distribution shift check against baseline proportions
         cat_features = drift_baseline.get("categorical_features", {})
-        if cat_features and len(input_dicts) >= 10:
+        if cat_features and len(input_dicts) >= MIN_SAMPLE_REQUIRED:
             for cat_col, cat_meta in cat_features.items():
                 base_props = cat_meta.get("proportions", {})
                 if not base_props:
@@ -304,38 +434,50 @@ class ModelMonitor:
                     for inp in input_dicts
                     if cat_col in inp and inp[cat_col] is not None and inp[cat_col] != ""
                 ]
-                if len(curr_vals) >= 10:
+                if len(curr_vals) >= MIN_SAMPLE_REQUIRED:
                     try:
                         all_cats = list(set(list(base_props.keys()) + curr_vals))
-                        curr_counts = pd.Series(curr_vals).value_counts(normalize=True).to_dict()
+                        curr_cnts = pd.Series(curr_vals).value_counts(normalize=True).to_dict()
                         eps = 1e-4
                         c_psi = 0.0
                         for c in all_cats:
                             b_p = base_props.get(c, eps)
-                            c_p = curr_counts.get(c, eps)
+                            c_p = curr_cnts.get(c, eps)
                             c_psi += (c_p - b_p) * math.log(c_p / b_p)
-                        feature_psis[cat_col] = round(max(0.0, float(c_psi)), 4)
+                        feature_psis[cat_col] = (
+                            round(max(0.0, float(c_psi)), 4) if np.isfinite(c_psi) else None
+                        )
                     except Exception:
-                        pass
+                        feature_psis[cat_col] = None
 
-        if feature_psis:
-            max_f_psi = max(feature_psis.values())
-            feat_level = "Nominal" if max_f_psi < 0.10 else ("Moderate Shift" if max_f_psi < 0.25 else "Significant Shift")
+        valid_psi_vals = [v for v in feature_psis.values() if v is not None]
+        if valid_psi_vals:
+            max_f_psi = max(valid_psi_vals)
+            feat_level = (
+                "Nominal" if max_f_psi < 0.10 else
+                ("Moderate Shift" if max_f_psi < 0.25 else "Significant Shift")
+            )
         else:
             feat_level = "Nominal"
 
         return {
             "status": "Active",
             "production_volume": prod_count,
-            "min_volume_required": 10,
-            "prediction_drift_psi": psi,
+            "min_volume_required": MIN_SAMPLE_REQUIRED,
+            "required_sample_size": MIN_SAMPLE_REQUIRED,
+            "prediction_drift_psi": psi_val,
+            "prediction_drift_psi_status": psi_result.status,
+            "prediction_drift_psi_reason": psi_result.reason if psi_result.status != "ok" else "",
             "prediction_drift_level": pred_level,
             "missingness_drift": missingness_drift_str,
             "per_feature_missingness": per_feature_missingness,
             "feature_distribution_shift": feat_level,
             "baseline_sample_size": len(baseline_probs),
             "feature_psis": feature_psis,
-            "message": f"Real PSI computed across {prod_count} production inferences vs {len(baseline_probs)} baseline validation predictions.",
+            "message": (
+                f"Real PSI computed across {prod_count} production inferences "
+                f"vs {len(baseline_probs)} baseline validation predictions."
+            ),
+            # Internal: carry typed PSIResult for overall_status logic (stripped before API response)
+            "_psi_result": psi_result,
         }
-
-

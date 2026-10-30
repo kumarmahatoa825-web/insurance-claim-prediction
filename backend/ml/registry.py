@@ -30,7 +30,10 @@ import os
 import json
 import hashlib
 import logging
+import platform
 import datetime
+import subprocess
+from pathlib import Path
 from typing import Optional, Tuple, Dict, Any, List
 
 logger = logging.getLogger(__name__)
@@ -48,6 +51,80 @@ MANDATORY_PROMOTION_REQUIREMENTS = {
 }
 
 
+def _get_git_sha() -> str:
+    """
+    Return the current Git commit SHA.
+
+    Issue 12 — NEVER fabricate provenance:
+    - If Git is available → return real short SHA.
+    - If BUILD_ID env var is set (CI) → return it.
+    - Otherwise → raise RuntimeError; the release must not be created.
+    """
+    try:
+        sha = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        ).decode().strip()
+        if sha:
+            return sha
+    except Exception:
+        pass
+
+    build_id = os.environ.get("BUILD_ID") or os.environ.get("GITHUB_SHA") or os.environ.get("CI_COMMIT_SHA")
+    if build_id:
+        return build_id[:12]
+
+    raise RuntimeError(
+        "Cannot determine Git provenance: 'git rev-parse HEAD' failed and no BUILD_ID/GITHUB_SHA "
+        "environment variable is set. Release creation requires verifiable source provenance. "
+        "Set BUILD_ID=<commit-sha> in CI or run inside a Git repository."
+    )
+
+
+def _generate_runtime_manifest(release_dir: Path, version: str, git_sha: str) -> dict:
+    """
+    Issue 1 — Generate runtime_manifest.json alongside every release.
+
+    Records the exact Python and library versions used to serialize the model,
+    plus schema and model hashes, so any future environment can be validated
+    against this manifest before serving predictions.
+    """
+    import importlib
+
+    def _pkg_version(name: str) -> str:
+        try:
+            return importlib.import_module(name).__version__
+        except Exception:
+            try:
+                import importlib.metadata
+                return importlib.metadata.version(name)
+            except Exception:
+                return "unknown"
+
+    manifest = {
+        "release_id": version,
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+        "numpy": _pkg_version("numpy"),
+        "pandas": _pkg_version("pandas"),
+        "scikit_learn": _pkg_version("sklearn"),
+        "imbalanced_learn": _pkg_version("imblearn"),
+        "xgboost": _pkg_version("xgboost"),
+        "shap": _pkg_version("shap"),
+        "joblib": _pkg_version("joblib"),
+        "training_git_sha": git_sha,
+        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    }
+
+    manifest_path = release_dir / "runtime_manifest.json"
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    logger.info("Generated runtime_manifest.json for release %s", version)
+    return manifest
+
+
 def compute_sha256(file_path: str) -> str:
     """Compute SHA-256 hash formatted as sha256:<hex>."""
     h = hashlib.sha256()
@@ -60,18 +137,27 @@ def compute_sha256(file_path: str) -> str:
 class ModelRegistry:
     """
     Production-grade Model Registry using strictly immutable releases and atomic pointers.
+
+    Issue 13: All internal paths use pathlib.Path and are resolved relative to models_dir.
+    Release entries store LOGICAL artifact names (e.g. "model.joblib"), not absolute OS paths.
+    Path resolution happens at runtime via: self.releases_dir / release_id / artifact_name.
     """
 
     def __init__(self, models_dir: str = "models"):
-        self.models_dir = models_dir
-        self.registry_path = os.path.join(models_dir, REGISTRY_FILE)
-        self.current_pointer_path = os.path.join(models_dir, CURRENT_POINTER_FILE)
-        self.releases_dir = os.path.join(models_dir, RELEASES_SUBDIR)
+        # Issue 13: use pathlib throughout — normalizes separators on Windows/Linux
+        self.models_dir = Path(models_dir).resolve()
+        self.registry_path = self.models_dir / REGISTRY_FILE
+        self.current_pointer_path = self.models_dir / CURRENT_POINTER_FILE
+        self.releases_dir = self.models_dir / RELEASES_SUBDIR
 
-        os.makedirs(self.releases_dir, exist_ok=True)
+        self.releases_dir.mkdir(parents=True, exist_ok=True)
+
+    def _resolve_artifact(self, release_id: str, artifact_name: str) -> Path:
+        """Resolve a logical artifact name to an absolute path. Always use this, never store OS paths."""
+        return self.releases_dir / release_id / artifact_name
 
     def _load(self) -> dict:
-        if os.path.exists(self.registry_path):
+        if self.registry_path.exists():
             try:
                 with open(self.registry_path, "r", encoding="utf-8") as f:
                     return json.load(f)
@@ -87,54 +173,59 @@ class ModelRegistry:
 
     def _save(self, data: dict) -> None:
         data["last_updated"] = datetime.datetime.now().isoformat()
-        tmp_path = self.registry_path + ".tmp"
+        tmp_path = str(self.registry_path) + ".tmp"
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-        os.replace(tmp_path, self.registry_path)
+        os.replace(tmp_path, str(self.registry_path))
         logger.info("Registry saved atomically: %s", self.registry_path)
 
     # ── Checksum & Integrity Management ──────────────────────────────────────
 
-    def generate_checksums(self, release_dir: str) -> Dict[str, str]:
+    def generate_checksums(self, release_dir: Path) -> Dict[str, str]:
         """Generate SHA-256 checksums for model, metadata, and all release artifacts."""
         tracked_files = [
             "model.joblib",
             "metadata.json",
             "calibration.json",
             "global_shap_importance.json",
-            "global_mdi_importance.json",
+            "global_feature_importance.json",
+            "runtime_manifest.json",       # Issue 1: include runtime manifest in checksums
             "release_manifest.json",
             "roc_curve.json",
             "pr_curve.json",
         ]
+        release_dir = Path(release_dir)
         checksums = {}
         for fname in tracked_files:
-            fpath = os.path.join(release_dir, fname)
-            if os.path.exists(fpath):
-                checksums[fname] = compute_sha256(fpath)
+            fpath = release_dir / fname
+            if fpath.exists():
+                checksums[fname] = compute_sha256(str(fpath))
 
-        csum_path = os.path.join(release_dir, "checksums.json")
+        csum_path = release_dir / "checksums.json"
         with open(csum_path, "w", encoding="utf-8") as f:
             json.dump(checksums, f, indent=2)
         return checksums
 
-    def verify_release_integrity(self, release_dir: str) -> bool:
+    def verify_release_integrity(self, release_dir) -> bool:
         """
         Verify release directory files exist and match their recorded SHA-256 hashes.
         Raises RuntimeError on integrity failure.
         """
-        csum_path = os.path.join(release_dir, "checksums.json")
-        if not os.path.exists(csum_path):
+        release_dir = Path(release_dir)
+        csum_path = release_dir / "checksums.json"
+        if not csum_path.exists():
             raise RuntimeError(f"Model integrity failure: missing 'checksums.json' in {release_dir}")
 
         with open(csum_path, "r", encoding="utf-8") as f:
             expected = json.load(f)
 
         for filename, expected_hash in expected.items():
-            fpath = os.path.join(release_dir, filename)
-            if not os.path.exists(fpath):
-                raise RuntimeError(f"Model integrity failure: missing file '{filename}' in {release_dir}")
-            actual_hash = compute_sha256(fpath)
+            fpath = release_dir / filename
+            if not fpath.exists():
+                raise RuntimeError(
+                    f"Model integrity failure: missing file '{filename}' in {release_dir}"
+                )
+            actual_hash = compute_sha256(str(fpath))
             if actual_hash != expected_hash:
                 raise RuntimeError(
                     f"Model integrity failure: hash mismatch for '{filename}' in {release_dir} "
@@ -144,12 +235,12 @@ class ModelRegistry:
 
     def verify_release(self, version: str) -> Tuple[bool, str]:
         """
-        Verify release directory exists, contains checksums.json, and all files match recorded hashes.
+        Verify release directory exists, contains checksums.json, and all files match.
         Never auto-generates missing checksums on verification.
         Returns: (is_valid, reason)
         """
-        release_dir = os.path.join(self.releases_dir, version)
-        if not os.path.isdir(release_dir):
+        release_dir = self.releases_dir / version
+        if not release_dir.is_dir():
             return False, f"Release directory does not exist: {release_dir}"
         try:
             self.verify_release_integrity(release_dir)
@@ -161,7 +252,7 @@ class ModelRegistry:
 
     def get_current_pointer(self) -> Optional[dict]:
         """Read authoritative current.json pointer."""
-        if os.path.exists(self.current_pointer_path):
+        if self.current_pointer_path.exists():
             try:
                 with open(self.current_pointer_path, "r", encoding="utf-8") as f:
                     return json.load(f)
@@ -188,14 +279,14 @@ class ModelRegistry:
 
     def _set_current_champion_pointer(self, version: str) -> None:
         """Atomically update current.json pointer using os.replace."""
-        tmp_path = self.current_pointer_path + ".tmp"
+        tmp_path = str(self.current_pointer_path) + ".tmp"
         payload = {
             "champion_version": version,
             "updated_at": datetime.datetime.now().isoformat(),
         }
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2)
-        os.replace(tmp_path, self.current_pointer_path)
+        os.replace(tmp_path, str(self.current_pointer_path))
         logger.info("Atomically updated current.json pointer to: %s", version)
 
     def get_active_champion_paths(self) -> Tuple[str, str]:
@@ -208,14 +299,14 @@ class ModelRegistry:
         if not champ_ver:
             raise RuntimeError("No active Champion is configured.")
 
-        release_dir = os.path.join(self.releases_dir, champ_ver)
-        if not os.path.isdir(release_dir):
+        release_dir = self.releases_dir / champ_ver
+        if not release_dir.is_dir():
             raise RuntimeError(f"Configured Champion release directory not found: {release_dir}")
 
         self.verify_release_integrity(release_dir)
 
-        m_path = os.path.join(release_dir, "model.joblib")
-        meta_path = os.path.join(release_dir, "metadata.json")
+        m_path = release_dir / "model.joblib"
+        meta_path = release_dir / "metadata.json"
 
         if not os.path.exists(m_path):
             raise RuntimeError(f"Model artifact not found: {m_path}")
@@ -232,36 +323,51 @@ class ModelRegistry:
         version: str,
         model_obj_or_path: Any,
         metadata: dict,
+        *,
+        require_git_sha: bool = True,
     ) -> dict:
         """
         Register a new trained model as an immutable release in models/releases/<version>/.
         Initial status: candidate / pending approval.
-        Computes SHA-256 checksums and stores in checksums.json.
+        Generates runtime_manifest.json (Issue 1), enforces Git provenance (Issue 12),
+        stores only LOGICAL artifact names in registry (Issue 13).
         Raises ValueError if version already exists (releases are strictly immutable).
         """
         import joblib
         import shutil
 
-        release_dir = os.path.join(self.releases_dir, version)
-        if os.path.exists(release_dir):
-            raise ValueError(f"Release directory already exists for version '{version}'. Releases are immutable.")
-        os.makedirs(release_dir, exist_ok=False)
-
-        target_model_path = os.path.join(release_dir, "model.joblib")
-        target_meta_path = os.path.join(release_dir, "metadata.json")
-
-        if isinstance(model_obj_or_path, str) and os.path.exists(model_obj_or_path):
-            shutil.copy2(model_obj_or_path, target_model_path)
+        # Issue 12: fail hard if no real Git provenance is available
+        if require_git_sha:
+            git_sha = _get_git_sha()
         else:
-            joblib.dump(model_obj_or_path, target_model_path)
+            git_sha = metadata.get("git_sha", "untracked")
+
+        release_dir = self.releases_dir / version
+        if release_dir.exists():
+            raise ValueError(
+                f"Release directory already exists for version '{version}'. Releases are immutable."
+            )
+        release_dir.mkdir(parents=True, exist_ok=False)
+
+        target_model_path = release_dir / "model.joblib"
+        target_meta_path = release_dir / "metadata.json"
+
+        if isinstance(model_obj_or_path, (str, Path)) and Path(model_obj_or_path).exists():
+            shutil.copy2(str(model_obj_or_path), str(target_model_path))
+        else:
+            joblib.dump(model_obj_or_path, str(target_model_path))
 
         meta_to_store = dict(metadata)
         meta_to_store["version"] = version
         meta_to_store["model_status"] = "candidate"
+        meta_to_store["training_git_sha"] = git_sha
         with open(target_meta_path, "w", encoding="utf-8") as f:
             json.dump(meta_to_store, f, indent=2)
 
-        # Generate checksums.json immediately
+        # Issue 1: generate runtime_manifest.json BEFORE checksums (so it's included)
+        _generate_runtime_manifest(release_dir, version, git_sha)
+
+        # Generate checksums.json (includes runtime_manifest.json)
         self.generate_checksums(release_dir)
 
         reg = self._load()
@@ -269,11 +375,13 @@ class ModelRegistry:
         entry = {
             "version": version,
             "model_name": model_name,
-            "model_path": target_model_path,
-            "metadata_path": target_meta_path,
+            # Issue 13: store LOGICAL artifact names only, not absolute OS paths
+            "model_artifact": "model.joblib",
+            "metadata_artifact": "metadata.json",
             "status": "candidate",
             "approval_status": "pending",
             "registered_at": datetime.datetime.now().isoformat(),
+            "training_git_sha": git_sha,
             "metrics": {
                 "cv_f1_mean": metadata.get("cv_metrics", {}).get("mean", {}).get("f1") or metadata.get("test_metrics", {}).get("f1") or metadata.get("f1", 0),
                 "cv_roc_auc_mean": metadata.get("cv_metrics", {}).get("mean", {}).get("roc_auc") or metadata.get("test_metrics", {}).get("roc_auc") or metadata.get("roc_auc", 0),
@@ -293,7 +401,7 @@ class ModelRegistry:
         reg["candidates"] = [c for c in reg.get("candidates", []) if c["version"] != version]
         reg["candidates"].append(entry)
         self._save(reg)
-        logger.info("Registered immutable candidate release: %s (%s)", model_name, version)
+        logger.info("Registered immutable candidate release: %s (%s) SHA=%s", model_name, version, git_sha)
         return entry
 
     # ── Comparison & Gate Verification ───────────────────────────────────────
@@ -317,7 +425,8 @@ class ModelRegistry:
         if not candidate:
             raise ValueError(f"Candidate '{candidate_version}' not found in registry.")
 
-        release_dir = os.path.join(self.releases_dir, candidate_version)
+        # Issue 13: resolve via logical artifact name, not stored OS path
+        release_dir = self.releases_dir / candidate_version
         artifact_ok = False
         try:
             artifact_ok = self.verify_release_integrity(release_dir)
@@ -330,18 +439,24 @@ class ModelRegistry:
         cv_f1 = c_metrics.get("cv_f1_mean", 0)
         brier = c_metrics.get("brier_score", 1.0)
 
-        # Read metadata for schema and fairness checks
-        meta_path = candidate.get("metadata_path", "")
+        # Read metadata via logical artifact name (Issue 13)
+        meta_artifact = candidate.get("metadata_artifact", "metadata.json")
+        meta_path = release_dir / meta_artifact
+        # Backward compat: also accept legacy stored metadata_path field
+        if not meta_path.exists():
+            legacy = candidate.get("metadata_path", "")
+            if legacy and Path(legacy).exists():
+                meta_path = Path(legacy)
         meta_dict = {}
-        if os.path.exists(meta_path):
+        if meta_path.exists():
             with open(meta_path, "r", encoding="utf-8") as f:
                 meta_dict = json.load(f)
 
         # Verify against canonical schema hash
         canonical_feature_hash = None
         canonical_doc_hash = None
-        schema_version_path = os.path.abspath(os.path.join(self.models_dir, "..", "schemas", "schema_version.json"))
-        if os.path.exists(schema_version_path):
+        schema_version_path = self.models_dir.parent / "schemas" / "schema_version.json"
+        if schema_version_path.exists():
             try:
                 with open(schema_version_path, "r", encoding="utf-8") as svf:
                     s_meta = json.load(svf)
