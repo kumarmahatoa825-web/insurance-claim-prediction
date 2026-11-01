@@ -47,6 +47,9 @@ jobs:
           print(f'Runtime verified: sklearn={sklearn.__version__}, xgboost={xgboost.__version__}, shap={shap.__version__}')
           "
 
+      - name: Generate final submission artifact
+        run: python scripts/generate_submission.py
+
       - name: Run Full Pytest Suite (83+ Unit & Integration Tests)
         run: |
           pytest -v --tb=short
