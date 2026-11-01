@@ -23,7 +23,8 @@ models/candidates/
 *.db
 insureai.db
 data/insureai.db
-data/processed/
+data/processed/*
+!data/processed/drift_baseline.json
 backups/
 scratch*
 
