@@ -67,12 +67,22 @@ Fold-Safe Preprocessing     5-Fold Stratified CV                │
 
 ## 🚀 Quick Start
 
-### 1. Backend (FastAPI + ML Model)
+### 0. Install dependencies (Windows PowerShell)
+Use Python 3.10 for the saved model artifacts. Run these commands from the project root:
 ```powershell
-cd "insurance-claim-prediction"
+py -3.10 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+cd frontend
+npm install
+cd ..
+```
+
+### 1. Backend (FastAPI + ML Model)
+Run from the project root using the virtual environment's Python (do not use a global `uvicorn`):
+```powershell
 $env:PYTHONIOENCODING="utf-8"
 $env:LOKY_MAX_CPU_COUNT="4"
-uvicorn backend.main:app --port 8000 --reload
+.\.venv\Scripts\python.exe -m uvicorn backend.main:app --port 8000 --reload
 ```
 
 ### 2. Frontend (React + Vite + Tailwind)

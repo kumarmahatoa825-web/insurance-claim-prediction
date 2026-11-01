@@ -10,7 +10,7 @@ import {
 import { Info, Brain, Sparkles, Sliders, ShieldCheck, AlertCircle } from 'lucide-react';
 import RiskBadge from '../components/ui/RiskBadge';
 
-import { DEFAULT_VEHICLE_RECORD } from '../config/vehicleSchema';
+import { DEFAULT_VEHICLE_RECORD, VEHICLE_SCHEMA } from '../config/vehicleSchema';
 
 export default function Explainability() {
   const { data: modelInfo, loading, error, execute: fetchInfo } = useApi(getModelInfo);
@@ -214,7 +214,7 @@ export default function Explainability() {
               onChange={e => handleInputChange('area_cluster', e.target.value)}
               className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white"
             >
-              {AREA_CLUSTERS.map(c => <option key={c} value={c}>{c}</option>)}
+              {VEHICLE_SCHEMA.areaClusters.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
 

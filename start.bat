@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 echo ====================================================
 echo  InsureAI - Intelligent Insurance Claim Prediction
 echo  Real World Vehicle Insurance Dataset
@@ -6,9 +7,18 @@ echo ====================================================
 
 echo.
 echo [1/4] Checking Python environment...
-where python >nul 2>&1
+if not exist ".venv\Scripts\python.exe" (
+    echo ERROR: Project virtual environment not found.
+    echo Run: py -3.10 -m venv .venv
+    echo Then: .venv\Scripts\python.exe -m pip install -r requirements.txt
+    pause
+    exit /b 1
+)
+
+".venv\Scripts\python.exe" -c "import uvicorn, joblib" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo ERROR: Python not found. Install Python 3.10+ and try again.
+    echo ERROR: Backend dependencies are missing from the project virtual environment.
+    echo Run: .venv\Scripts\python.exe -m pip install -r requirements.txt
     pause
     exit /b 1
 )
@@ -20,7 +30,7 @@ if not exist models\current.json (
     echo      Training on REAL dataset...
     echo      This may take 3-5 minutes on first run.
     set PYTHONIOENCODING=utf-8
-    python -m backend.ml.train_real
+    .venv\Scripts\python.exe -m backend.ml.train_real
     if %errorlevel% neq 0 (
         echo [ERROR] Real data training failed. Please inspect logs.
         pause
@@ -35,7 +45,7 @@ echo.
 echo [3/4] Starting FastAPI backend on http://localhost:8000 ...
 set PYTHONIOENCODING=utf-8
 set LOKY_MAX_CPU_COUNT=4
-start "InsureAI Backend" cmd /k "cd /d %~dp0 && set PYTHONIOENCODING=utf-8 && uvicorn backend.main:app --reload --port 8000"
+start "InsureAI Backend" ".venv\Scripts\python.exe" -m uvicorn backend.main:app --reload --port 8000
 
 echo.
 echo      Waiting 4 seconds for backend to initialize...
