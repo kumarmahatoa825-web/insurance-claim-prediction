@@ -148,7 +148,7 @@ def generate_submission(
         "average_predicted_probability": round(avg_prob, 4),
         "threshold_used": float(threshold),
         "active_champion_version": reg.get_current_champion_version(),
-        "model_path": model_path,
+        "model_path": str(model_path),
         "sha256": sub_hash,
         "generated_at": datetime.datetime.now().isoformat(),
     }
